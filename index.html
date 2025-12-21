@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,22 +6,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My 2D App</title>
 
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#050608">
+
 <style>
 body{
   margin:0;
   background:#050608;
   overflow:hidden;
+  font-family: Arial, sans-serif;
 }
 canvas{display:block;}
+
+#menu{
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+}
+
+button{
+  padding:16px 40px;
+  font-size:20px;
+  background:#00ff95;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+}
+button:hover{
+  background:#00cc77;
+}
+
+#backBtn{
+  position:fixed;
+  top:20px;
+  left:20px;
+  display:none;
+}
 </style>
 </head>
 <body>
+
+<div id="menu">
+  <h1 style="color:white;">🎮 Games Menu</h1>
+  <button onclick="startGame('game1')">Game 1 – Moving Box</button>
+  <button onclick="startGame('game2')">Game 2 – Click Counter</button>
+</div>
+
+<button id="backBtn" onclick="goToMenu()">⬅ Menu</button>
 
 <canvas id="game"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const menu = document.getElementById("menu");
+const backBtn = document.getElementById("backBtn");
 
 function resize(){
   canvas.width = innerWidth;
@@ -29,17 +73,61 @@ function resize(){
 addEventListener("resize", resize);
 resize();
 
-let x = 50;
+let currentScreen = "menu";
 
+/* ---------- MENU CONTROL ---------- */
+function startGame(game){
+  currentScreen = game;
+  menu.style.display = "none";
+  backBtn.style.display = "block";
+}
+
+function goToMenu(){
+  currentScreen = "menu";
+  menu.style.display = "flex";
+  backBtn.style.display = "none";
+}
+
+/* ---------- GAME 1 ---------- */
+let x = 0;
+function game1(){
+  x += 3;
+  if(x > canvas.width) x = -50;
+  ctx.fillStyle = "#00ff95";
+  ctx.fillRect(x, canvas.height/2, 50, 50);
+}
+
+/* ---------- GAME 2 ---------- */
+let clicks = 0;
+canvas.addEventListener("click", () => {
+  if(currentScreen === "game2") clicks++;
+});
+
+function game2(){
+  ctx.fillStyle = "white";
+  ctx.font = "40px Arial";
+  ctx.fillText("Clicks: " + clicks, 50, 100);
+}
+
+/* ---------- MAIN LOOP ---------- */
 function loop(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = "#00ff95";
-  ctx.fillRect(x, 100, 50, 50);
-  x += 2;
-  if(x > canvas.width) x = -50;
+
+  if(currentScreen === "game1"){
+    game1();
+  }
+  else if(currentScreen === "game2"){
+    game2();
+  }
+
   requestAnimationFrame(loop);
 }
 loop();
+
+/* ---------- SERVICE WORKER ---------- */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js");
+}
 </script>
 
 </body>
