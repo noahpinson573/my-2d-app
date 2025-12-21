@@ -1,6 +1,6 @@
 {
-  "name": "My 2D App",
-  "short_name": "2DApp",
+  "name": "Neon Arcade",
+  "short_name": "Arcade",
   "start_url": "/",
   "display": "fullscreen",
   "background_color": "#050608",
