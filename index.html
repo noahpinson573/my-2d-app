@@ -9,15 +9,28 @@
 <meta name="theme-color" content="#050608">
 
 <style>
+:root{
+  --bg:#050608;
+  --neon:#00ffea;
+  --danger:#ff0066;
+}
+
+*{box-sizing:border-box}
+
 body{
   margin:0;
-  background:#050608;
-  color:#00ffea;
-  font-family:Arial, sans-serif;
+  background:radial-gradient(circle at top, #0a0f14, #050608 70%);
+  color:var(--neon);
+  font-family:Orbitron, Arial, sans-serif;
   overflow:hidden;
 }
-canvas{display:block}
 
+/* ===== CANVAS ===== */
+canvas{
+  display:block;
+}
+
+/* ===== OVERLAYS ===== */
 .overlay{
   position:fixed;
   inset:0;
@@ -25,59 +38,104 @@ canvas{display:block}
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  background:rgba(5,6,8,0.9);
+  background:rgba(5,6,8,0.88);
+  backdrop-filter: blur(6px);
 }
 
 .hidden{display:none}
 
+/* ===== BUTTONS ===== */
 .btn{
-  padding:16px 50px;
+  padding:18px 60px;
   font-size:18px;
-  margin:10px;
-  background:#050608;
-  color:#00ffea;
-  border:2px solid #00ffea;
-  border-radius:10px;
+  margin:12px;
+  background:transparent;
+  color:var(--neon);
+  border:2px solid var(--neon);
+  border-radius:14px;
   cursor:pointer;
-  box-shadow:0 0 15px #00ffea;
+  letter-spacing:2px;
+  box-shadow:
+    0 0 12px var(--neon),
+    inset 0 0 12px rgba(0,255,234,0.4);
+  transition:0.25s;
 }
-.btn:hover{background:#00ffea;color:#050608}
 
+.btn:hover{
+  background:var(--neon);
+  color:#050608;
+  box-shadow:
+    0 0 25px var(--neon),
+    0 0 60px rgba(0,255,234,0.6);
+  transform:scale(1.05);
+}
+
+/* ===== TITLES ===== */
+h1{
+  font-size:56px;
+  margin-bottom:30px;
+  text-shadow:
+    0 0 10px var(--neon),
+    0 0 40px rgba(0,255,234,0.6);
+}
+
+/* ===== HUD ===== */
 #hud{
   position:fixed;
   top:20px;
   left:20px;
+  font-size:18px;
+  line-height:1.6;
+  text-shadow:0 0 8px var(--neon);
+}
+
+/* ===== PAUSE ===== */
+#pause h2,
+#settings h2{
+  margin-bottom:20px;
+}
+
+/* ===== BACKGROUND GRID ===== */
+#grid{
+  position:fixed;
+  inset:0;
+  background:
+    linear-gradient(rgba(0,255,234,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,234,0.05) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
 }
 </style>
 </head>
 <body>
 
+<div id="grid"></div>
+
 <!-- MENU -->
 <div id="menu" class="overlay">
   <h1>NEON ARCADE</h1>
-  <button class="btn" onclick="Engine.start('dodge')">Dodge</button>
-  <button class="btn" onclick="Engine.start('reaction')">Reaction</button>
-  <button class="btn" onclick="Engine.showSettings()">Settings</button>
+  <button class="btn" onclick="Engine.start('dodge')">DODGE</button>
+  <button class="btn" onclick="Engine.start('reaction')">REACTION</button>
+  <button class="btn" onclick="Engine.openSettings()">SETTINGS</button>
 </div>
 
 <!-- SETTINGS -->
 <div id="settings" class="overlay hidden">
-  <h2>Settings</h2>
-  <label>Difficulty</label>
+  <h2>DIFFICULTY</h2>
   <select id="difficulty">
-    <option value="1">Easy</option>
-    <option value="1.5">Normal</option>
-    <option value="2">Hard</option>
+    <option value="1">EASY</option>
+    <option value="1.5">NORMAL</option>
+    <option value="2">HARD</option>
   </select>
   <br><br>
-  <button class="btn" onclick="Engine.saveSettings()">Save</button>
+  <button class="btn" onclick="Engine.saveSettings()">SAVE</button>
 </div>
 
 <!-- PAUSE -->
 <div id="pause" class="overlay hidden">
-  <h2>Paused</h2>
-  <button class="btn" onclick="Engine.resume()">Resume</button>
-  <button class="btn" onclick="Engine.quit()">Quit</button>
+  <h2>PAUSED</h2>
+  <button class="btn" onclick="Engine.resume()">RESUME</button>
+  <button class="btn" onclick="Engine.quit()">QUIT</button>
 </div>
 
 <div id="hud"></div>
@@ -111,8 +169,11 @@ const AudioSys = {
   ctx:new (window.AudioContext||window.webkitAudioContext)(),
   beep(freq=500){
     const o=this.ctx.createOscillator();
+    const g=this.ctx.createGain();
     o.frequency.value=freq;
-    o.connect(this.ctx.destination);
+    g.gain.value=0.1;
+    o.connect(g);
+    g.connect(this.ctx.destination);
     o.start();
     setTimeout(()=>o.stop(),80);
   }
@@ -122,14 +183,13 @@ const AudioSys = {
 const Engine = {
   state:"menu",
   game:null,
-  last:0,
   score:0,
   difficulty:localStorage.getItem("difficulty")||1,
 
   start(name){
     this.state="game";
-    hideAll();
     this.score=0;
+    hideAll();
     this.game=Games[name];
     this.game.init();
   },
@@ -162,7 +222,7 @@ const Engine = {
     show("menu");
   },
 
-  showSettings(){
+  openSettings(){
     hideAll();
     show("settings");
   },
@@ -180,8 +240,8 @@ const Games = {
 
   dodge:{
     init(){
-      this.p={x:200,y:200,s:30,v:300*Engine.difficulty};
-      this.e={x:100,y:100,s:40,vx:250*Engine.difficulty,vy:250*Engine.difficulty};
+      this.p={x:canvas.width/2,y:canvas.height/2,s:28,v:400*Engine.difficulty};
+      this.e={x:100,y:100,s:40,vx:260*Engine.difficulty,vy:260*Engine.difficulty};
     },
     update(dt){
       const p=this.p;
@@ -199,17 +259,22 @@ const Games = {
         p.x<e.x+e.s&&p.x+p.s>e.x&&
         p.y<e.y+e.s&&p.y+p.s>e.y
       ){
-        AudioSys.beep();
+        AudioSys.beep(200);
         Engine.quit();
       }
+
       Engine.score+=dt*60;
     },
     draw(){
+      ctx.shadowBlur=20;
+      ctx.shadowColor="var(--neon)";
       ctx.fillStyle="#00ffea";
       ctx.fillRect(this.p.x,this.p.y,this.p.s,this.p.s);
+      ctx.shadowColor="var(--danger)";
       ctx.fillStyle="#ff0066";
       ctx.fillRect(this.e.x,this.e.y,this.e.s,this.e.s);
-      hud.textContent="Score: "+Math.floor(Engine.score);
+      hud.innerHTML=`SCORE<br>${Math.floor(Engine.score)}`;
+      ctx.shadowBlur=0;
     }
   },
 
@@ -217,13 +282,19 @@ const Games = {
     init(){this.t=null},
     update(){
       if(!this.t){
-        this.t={x:Math.random()*(canvas.width-50),y:Math.random()*(canvas.height-50)};
+        this.t={
+          x:Math.random()*(canvas.width-50),
+          y:Math.random()*(canvas.height-50)
+        };
       }
     },
     draw(){
+      ctx.shadowBlur=20;
+      ctx.shadowColor="var(--neon)";
       ctx.fillStyle="#00ffea";
       ctx.fillRect(this.t.x,this.t.y,50,50);
-      hud.textContent="Clicks: "+Engine.score;
+      hud.innerHTML="CLICK FAST";
+      ctx.shadowBlur=0;
     }
   }
 };
