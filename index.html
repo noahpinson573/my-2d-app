@@ -25,7 +25,7 @@ canvas{display:block}
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  background:rgba(5,6,8,0.85);
+  background:rgba(5,6,8,0.9);
 }
 
 .hidden{display:none}
@@ -43,7 +43,7 @@ canvas{display:block}
 }
 .btn:hover{background:#00ffea;color:#050608}
 
-.hud{
+#hud{
   position:fixed;
   top:20px;
   left:20px;
@@ -63,8 +63,12 @@ canvas{display:block}
 <!-- SETTINGS -->
 <div id="settings" class="overlay hidden">
   <h2>Settings</h2>
-  <label>Volume</label>
-  <input type="range" min="0" max="1" step="0.05" id="volume">
+  <label>Difficulty</label>
+  <select id="difficulty">
+    <option value="1">Easy</option>
+    <option value="1.5">Normal</option>
+    <option value="2">Hard</option>
+  </select>
   <br><br>
   <button class="btn" onclick="Engine.saveSettings()">Save</button>
 </div>
@@ -76,14 +80,13 @@ canvas{display:block}
   <button class="btn" onclick="Engine.quit()">Quit</button>
 </div>
 
-<div class="hud" id="hud"></div>
+<div id="hud"></div>
 <canvas id="game"></canvas>
 
 <script>
-/* ================== CORE ENGINE ================== */
+/* ================= CORE ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
 function resize(){
   canvas.width = innerWidth;
   canvas.height = innerHeight;
@@ -91,9 +94,7 @@ function resize(){
 addEventListener("resize", resize);
 resize();
 
-let lastTime = 0;
-
-/* ================== INPUT ================== */
+/* ================= INPUT ================= */
 const Input = {
   keys:{},
   init(){
@@ -105,37 +106,42 @@ const Input = {
   }
 };
 
-/* ================== AUDIO ================== */
+/* ================= AUDIO ================= */
 const AudioSys = {
-  volume:0.5,
-  beep(){
-    const a = new AudioContext();
-    const o = a.createOscillator();
-    o.connect(a.destination);
-    o.frequency.value=400;
+  ctx:new (window.AudioContext||window.webkitAudioContext)(),
+  beep(freq=500){
+    const o=this.ctx.createOscillator();
+    o.frequency.value=freq;
+    o.connect(this.ctx.destination);
     o.start();
     setTimeout(()=>o.stop(),80);
   }
 };
 
-/* ================== ENGINE ================== */
+/* ================= ENGINE ================= */
 const Engine = {
   state:"menu",
   game:null,
+  last:0,
   score:0,
+  difficulty:localStorage.getItem("difficulty")||1,
+
   start(name){
     this.state="game";
     hideAll();
     this.score=0;
-    this.game = Games[name];
+    this.game=Games[name];
     this.game.init();
   },
+
   update(dt){
     if(this.state==="game") this.game.update(dt);
   },
+
   draw(){
     if(this.state==="game") this.game.draw();
   },
+
   togglePause(){
     if(this.state==="game"){
       this.state="pause";
@@ -144,42 +150,47 @@ const Engine = {
       this.resume();
     }
   },
+
   resume(){
     this.state="game";
     hide("pause");
   },
+
   quit(){
     this.state="menu";
     hideAll();
     show("menu");
   },
+
   showSettings(){
     hideAll();
     show("settings");
   },
+
   saveSettings(){
-    AudioSys.volume=document.getElementById("volume").value;
+    this.difficulty=document.getElementById("difficulty").value;
+    localStorage.setItem("difficulty",this.difficulty);
     hide("settings");
     show("menu");
   }
 };
 
-/* ================== GAMES ================== */
+/* ================= GAMES ================= */
 const Games = {
 
   dodge:{
     init(){
-      this.player={x:200,y:200,s:30,v:400};
-      this.enemy={x:100,y:100,s:40,vx:300,vy:300};
+      this.p={x:200,y:200,s:30,v:300*Engine.difficulty};
+      this.e={x:100,y:100,s:40,vx:250*Engine.difficulty,vy:250*Engine.difficulty};
     },
     update(dt){
-      const p=this.player;
+      const p=this.p;
       if(Input.keys.w||Input.keys.ArrowUp) p.y-=p.v*dt;
       if(Input.keys.s||Input.keys.ArrowDown) p.y+=p.v*dt;
       if(Input.keys.a||Input.keys.ArrowLeft) p.x-=p.v*dt;
       if(Input.keys.d||Input.keys.ArrowRight) p.x+=p.v*dt;
 
-      const e=this.enemy;
+      const e=this.e;
       e.x+=e.vx*dt; e.y+=e.vy*dt;
       if(e.x<0||e.x+e.s>canvas.width) e.vx*=-1;
       if(e.y<0||e.y+e.s>canvas.height) e.vy*=-1;
@@ -195,52 +206,43 @@ const Games = {
     },
     draw(){
       ctx.fillStyle="#00ffea";
-      ctx.fillRect(this.player.x,this.player.y,this.player.s,this.player.s);
+      ctx.fillRect(this.p.x,this.p.y,this.p.s,this.p.s);
       ctx.fillStyle="#ff0066";
-      ctx.fillRect(this.enemy.x,this.enemy.y,this.enemy.s,this.enemy.s);
-      hud.innerText="Score: "+Math.floor(Engine.score);
+      ctx.fillRect(this.e.x,this.e.y,this.e.s,this.e.s);
+      hud.textContent="Score: "+Math.floor(Engine.score);
     }
   },
 
   reaction:{
-    init(){
-      this.target=null;
-    },
+    init(){this.t=null},
     update(){
-      if(!this.target){
-        this.target={
-          x:Math.random()*(canvas.width-50),
-          y:Math.random()*(canvas.height-50)
-        };
+      if(!this.t){
+        this.t={x:Math.random()*(canvas.width-50),y:Math.random()*(canvas.height-50)};
       }
     },
     draw(){
       ctx.fillStyle="#00ffea";
-      ctx.fillRect(this.target.x,this.target.y,50,50);
+      ctx.fillRect(this.t.x,this.t.y,50,50);
+      hud.textContent="Clicks: "+Engine.score;
     }
   }
 };
 
-/* ================== LOOP ================== */
+/* ================= LOOP ================= */
+let last=0;
 function loop(t){
-  const dt=(t-lastTime)/1000;
-  lastTime=t;
+  const dt=(t-last)/1000;
+  last=t;
   ctx.clearRect(0,0,canvas.width,canvas.height);
   Engine.update(dt);
   Engine.draw();
   requestAnimationFrame(loop);
 }
 
-/* ================== UI HELPERS ================== */
-const menu=document.getElementById("menu");
-const pause=document.getElementById("pause");
-const settings=document.getElementById("settings");
+/* ================= UI ================= */
 const hud=document.getElementById("hud");
-
 function hideAll(){
-  menu.classList.add("hidden");
-  pause.classList.add("hidden");
-  settings.classList.add("hidden");
+  document.querySelectorAll(".overlay").forEach(e=>e.classList.add("hidden"));
 }
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
