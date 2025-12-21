@@ -1,4 +1,4 @@
-const CACHE = "neon-arcade-v3";
+const CACHE = "neon-arcade-v4";
 
 const ASSETS = [
   "/",
