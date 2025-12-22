@@ -1,5 +1,5 @@
 {
-  "name": "Games Hub",
+  "name": "Neon Games Hub",
   "short_name": "Games",
   "start_url": "/",
   "display": "fullscreen",
@@ -10,3 +10,4 @@
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
+
