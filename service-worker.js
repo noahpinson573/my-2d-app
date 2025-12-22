@@ -1,4 +1,4 @@
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.1";
 const CACHE_NAME = `neon-games-${APP_VERSION}`;
 const ASSETS = ["/","/index.html","/manifest.json","/icon-192.png","/icon-512.png"];
 self.addEventListener("install", e => {e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)));self.skipWaiting();});
