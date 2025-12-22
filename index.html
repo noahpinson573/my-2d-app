@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Games Hub</title>
+<title>Neon Games Hub</title>
 
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#050608">
@@ -12,7 +12,8 @@
 :root{
   --bg:#050608;
   --neon:#00ff95;
-  --neonSoft:rgba(0,255,150,.25);
+  --danger:#ff0066;
+  --soft:rgba(0,255,150,.25);
   --text:#eafff6;
 }
 
@@ -26,41 +27,38 @@ body{
   overflow:hidden;
 }
 
-/* ===== TOP BAR ===== */
+/* ===== HUB ===== */
 #topbar{
   display:flex;
   align-items:center;
   gap:14px;
   padding:16px;
-  border-bottom:1px solid var(--neonSoft);
-  background:rgba(5,6,8,.85);
+  border-bottom:1px solid var(--soft);
 }
 
 #logo{
-  width:40px;height:40px;border-radius:10px;
-  background:linear-gradient(135deg,#00ff95,#00c27a);
+  width:40px;height:40px;
+  border-radius:10px;
+  background:linear-gradient(135deg,var(--neon),#00c27a);
   display:grid;place-items:center;
   font-weight:900;color:#022;
 }
 
-#title{font-size:20px;font-weight:600;color:var(--neon)}
-
 #content{
-  height:calc(100vh - 74px);
+  height:calc(100vh - 72px);
   overflow-y:auto;
+  padding:16px;
 }
 
-/* ===== GRID ===== */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
   gap:16px;
-  padding:16px;
 }
 
 .card{
   background:#0b141a;
-  border:1px solid var(--neonSoft);
+  border:1px solid var(--soft);
   border-radius:16px;
   padding:14px;
   display:flex;
@@ -68,19 +66,12 @@ body{
   gap:12px;
 }
 
-.thumb{
-  height:100px;
-  border-radius:12px;
-  background:linear-gradient(135deg,#00ff95,#00c27a);
-  opacity:.2;
-}
-
 .card h3{margin:0;color:var(--neon)}
 .play{
   margin-top:auto;
   padding:12px;
   border-radius:14px;
-  border:1px solid var(--neonSoft);
+  border:1px solid var(--soft);
   background:#050608;
   color:var(--text);
   cursor:pointer;
@@ -97,8 +88,8 @@ body{
 
 canvas{display:block}
 
-/* ===== MOBILE CONTROLS ===== */
-#touchControls{
+/* ===== TOUCH CONTROLS ===== */
+#controls{
   position:fixed;
   bottom:20px;
   left:50%;
@@ -107,15 +98,13 @@ canvas{display:block}
   gap:10px;
 }
 
-.tc{
+.ctrl{
   width:60px;height:60px;
   border-radius:50%;
   background:rgba(0,255,150,.15);
-  border:1px solid var(--neonSoft);
-  color:white;
+  border:1px solid var(--soft);
   display:grid;place-items:center;
-  font-size:20px;
-  user-select:none;
+  font-size:22px;
 }
 </style>
 </head>
@@ -123,49 +112,43 @@ canvas{display:block}
 
 <div id="topbar">
   <div id="logo">N</div>
-  <div id="title">Games Hub</div>
+  <strong>Neon Games Hub</strong>
 </div>
 
 <div id="content">
-  <div class="grid" id="gameGrid"></div>
+  <div class="grid" id="grid"></div>
 </div>
 
 <div id="overlay">
   <canvas id="game"></canvas>
-  <div id="touchControls">
-    <div class="tc" data-key="ArrowLeft">◀</div>
-    <div class="tc" data-key="ArrowRight">▶</div>
-    <div class="tc" data-key="ArrowUp">▲</div>
-    <div class="tc" data-key="ArrowDown">▼</div>
+  <div id="controls">
+    <div class="ctrl" data-k="ArrowLeft">◀</div>
+    <div class="ctrl" data-k="ArrowRight">▶</div>
+    <div class="ctrl" data-k="ArrowUp">▲</div>
+    <div class="ctrl" data-k="ArrowDown">▼</div>
   </div>
 </div>
 
 <script>
-/* ================= SETUP ================= */
+/* ================= HUB ================= */
 const games=[
- {id:"snake",name:"Snake"},
- {id:"tetris",name:"Tetris"},
- {id:"clicker",name:"Clicker"},
- {id:"dodge",name:"Dodge"}
+  {id:"snake",name:"Snake"},
+  {id:"tetris",name:"Tetris"},
+  {id:"platformer",name:"Platformer"},
+  {id:"tower",name:"Tower Defense"}
 ];
 
-const grid=document.getElementById("gameGrid");
+const grid=document.getElementById("grid");
 const overlay=document.getElementById("overlay");
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
-const touchControls=document.getElementById("touchControls");
+const controls=document.getElementById("controls");
+const keys={};
 
-let running=false,currentGame=null,keys={};
-
-/* ================= UI ================= */
 games.forEach(g=>{
   const c=document.createElement("div");
   c.className="card";
-  c.innerHTML=`
-    <div class="thumb"></div>
-    <h3>${g.name}</h3>
-    <button class="play">Play</button>
-  `;
+  c.innerHTML=`<h3>${g.name}</h3><button class="play">Play</button>`;
   c.querySelector(".play").onclick=()=>startGame(g.id);
   grid.appendChild(c);
 });
@@ -177,41 +160,40 @@ function resize(){
 window.addEventListener("resize",resize);
 
 /* ================= INPUT ================= */
-window.addEventListener("keydown",e=>keys[e.key]=true);
+window.addEventListener("keydown",e=>{
+  keys[e.key]=true;
+  if(e.key==="Escape") exitGame();
+});
 window.addEventListener("keyup",e=>keys[e.key]=false);
 
-document.querySelectorAll(".tc").forEach(b=>{
-  b.ontouchstart=()=>keys[b.dataset.key]=true;
-  b.ontouchend=()=>keys[b.dataset.key]=false;
+document.querySelectorAll(".ctrl").forEach(b=>{
+  b.ontouchstart=()=>keys[b.dataset.k]=true;
+  b.ontouchend=()=>keys[b.dataset.k]=false;
 });
 
 /* ================= ENGINE ================= */
+let game=null;
+
 function startGame(id){
   resize();
   overlay.style.display="block";
-  touchControls.style.display="flex";
-  currentGame=Games[id];
-  currentGame.init();
-  running=true;
+  controls.style.display="flex";
+  game=Games[id];
+  game.init();
   loop();
 }
 
 function exitGame(){
-  running=false;
   overlay.style.display="none";
-  touchControls.style.display="none";
+  controls.style.display="none";
+  game=null;
 }
 
-window.addEventListener("keydown",e=>{
-  if(e.key==="Escape") exitGame();
-});
-
-/* ================= LOOP ================= */
 function loop(){
-  if(!running) return;
+  if(!game) return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  currentGame.update();
-  currentGame.draw();
+  game.update();
+  game.draw();
   requestAnimationFrame(loop);
 }
 
@@ -220,93 +202,85 @@ const Games={
 
   snake:{
     init(){
-      this.size=20;
-      this.snake=[{x:10,y:10}];
-      this.dir={x:1,y:0};
-      this.food={x:15,y:15};
-      this.tick=0;
+      this.s=20;
+      this.sn=[{x:10,y:10}];
+      this.d={x:1,y:0};
+      this.f={x:15,y:15};
+      this.t=0;
     },
     update(){
-      if(++this.tick<6) return;
-      this.tick=0;
-      if(keys.ArrowUp) this.dir={x:0,y:-1};
-      if(keys.ArrowDown) this.dir={x:0,y:1};
-      if(keys.ArrowLeft) this.dir={x:-1,y:0};
-      if(keys.ArrowRight) this.dir={x:1,y:0};
-
-      const h={x:this.snake[0].x+this.dir.x,y:this.snake[0].y+this.dir.y};
-      if(h.x<0||h.y<0||h.x>canvas.width/this.size||h.y>canvas.height/this.size){
-        exitGame();return;
-      }
-      this.snake.unshift(h);
-      if(h.x===this.food.x&&h.y===this.food.y){
-        this.food={x:Math.floor(Math.random()*canvas.width/this.size),
-                   y:Math.floor(Math.random()*canvas.height/this.size)};
-      } else this.snake.pop();
+      if(++this.t<6) return;
+      this.t=0;
+      if(keys.ArrowUp) this.d={x:0,y:-1};
+      if(keys.ArrowDown) this.d={x:0,y:1};
+      if(keys.ArrowLeft) this.d={x:-1,y:0};
+      if(keys.ArrowRight) this.d={x:1,y:0};
+      const h={x:this.sn[0].x+this.d.x,y:this.sn[0].y+this.d.y};
+      if(h.x<0||h.y<0||h.x>canvas.width/this.s||h.y>canvas.height/this.s) return exitGame();
+      this.sn.unshift(h);
+      if(h.x===this.f.x&&h.y===this.f.y){
+        this.f={x:Math.random()*20|0,y:Math.random()*20|0};
+      } else this.sn.pop();
     },
     draw(){
-      ctx.fillStyle="#00ff95";
-      this.snake.forEach(s=>ctx.fillRect(s.x*this.size,s.y*this.size,this.size-2,this.size-2));
-      ctx.fillStyle="#ff0066";
-      ctx.fillRect(this.food.x*this.size,this.food.y*this.size,this.size-2,this.size-2);
-    }
-  },
-
-  clicker:{
-    init(){this.score=0},
-    update(){},
-    draw(){
-      ctx.fillStyle="#00ff95";
-      ctx.beginPath();
-      ctx.arc(canvas.width/2,canvas.height/2,80,0,Math.PI*2);
-      ctx.fill();
-      ctx.fillStyle="#000";
-      ctx.font="40px system-ui";
-      ctx.textAlign="center";
-      ctx.fillText(this.score,canvas.width/2,canvas.height/2+15);
-    }
-  },
-
-  dodge:{
-    init(){
-      this.p={x:canvas.width/2,y:canvas.height/2};
-      this.e={x:100,y:100,vx:6,vy:5};
-    },
-    update(){
-      if(keys.ArrowUp) this.p.y-=6;
-      if(keys.ArrowDown) this.p.y+=6;
-      if(keys.ArrowLeft) this.p.x-=6;
-      if(keys.ArrowRight) this.p.x+=6;
-      this.e.x+=this.e.vx;
-      this.e.y+=this.e.vy;
-      if(this.e.x<0||this.e.x>canvas.width) this.e.vx*=-1;
-      if(this.e.y<0||this.e.y>canvas.height) this.e.vy*=-1;
-      if(Math.abs(this.p.x-this.e.x)<30&&Math.abs(this.p.y-this.e.y)<30) exitGame();
-    },
-    draw(){
-      ctx.fillStyle="#00ff95";
-      ctx.fillRect(this.p.x,this.p.y,30,30);
-      ctx.fillStyle="#ff0066";
-      ctx.fillRect(this.e.x,this.e.y,30,30);
+      ctx.fillStyle=varNeon;
+      this.sn.forEach(s=>ctx.fillRect(s.x*this.s,s.y*this.s,this.s-2,this.s-2));
+      ctx.fillStyle=varDanger;
+      ctx.fillRect(this.f.x*this.s,this.f.y*this.s,this.s-2,this.s-2);
     }
   },
 
   tetris:{
     init(){
-      this.x=canvas.width/2-40;
       this.y=0;
     },
     update(){
-      if(keys.ArrowDown) this.y+=5;
-      if(this.y>canvas.height-40) exitGame();
+      this.y+=2;
+      if(this.y>canvas.height) exitGame();
     },
     draw(){
-      ctx.fillStyle="#00ff95";
-      ctx.fillRect(this.x,this.y,40,40);
+      ctx.fillStyle=varNeon;
+      ctx.fillRect(canvas.width/2-20,this.y,40,40);
+    }
+  },
+
+  platformer:{
+    init(){
+      this.x=50; this.y=200; this.vy=0;
+    },
+    update(){
+      if(keys.ArrowUp && this.y>=200) this.vy=-14;
+      this.vy+=1;
+      this.y+=this.vy;
+      if(this.y>200){ this.y=200; this.vy=0; }
+      if(keys.ArrowLeft) this.x-=5;
+      if(keys.ArrowRight) this.x+=5;
+    },
+    draw(){
+      ctx.fillStyle=varNeon;
+      ctx.fillRect(this.x,this.y,30,30);
+      ctx.fillStyle="#444";
+      ctx.fillRect(0,230,canvas.width,10);
+    }
+  },
+
+  tower:{
+    init(){
+      this.e=0;
+    },
+    update(){ this.e+=1; if(this.e>canvas.width) exitGame(); },
+    draw(){
+      ctx.fillStyle=varDanger;
+      ctx.fillRect(this.e,canvas.height/2,20,20);
+      ctx.fillStyle=varNeon;
+      ctx.fillRect(100,canvas.height/2,30,30);
     }
   }
 
 };
+
+const varNeon="#00ff95";
+const varDanger="#ff0066";
 </script>
 
 <script>
