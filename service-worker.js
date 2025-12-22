@@ -1,4 +1,4 @@
-const CACHE_NAME = "neon-hub-cache-v1";
+const CACHE_NAME = "neon-hub-cache-v2";
 const urlsToCache = ["index.html","manifest.json","icon-192.png","icon-512.png"];
 
 self.addEventListener("install", e => {
