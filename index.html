@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Neon Games Hub</title>
 
 <style>
@@ -80,7 +80,7 @@ body{
   display:none;
   z-index:1000;
 }
-canvas{display:block}
+canvas{display:block; width:100%; height:100%}
 
 /* MOBILE CONTROLS */
 #controls{
@@ -99,6 +99,7 @@ canvas{display:block}
   display:grid;place-items:center;
   font-size:22px;
   user-select:none;
+  touch-action:none;
 }
 </style>
 </head>
@@ -106,7 +107,7 @@ canvas{display:block}
 <body>
 
 <div id="topbar">
-  <div id="logo">N</div>
+  <div id="logo" aria-hidden="true">N</div>
   <strong>Neon Games Hub</strong>
 </div>
 
@@ -114,276 +115,335 @@ canvas{display:block}
   <div class="grid" id="grid"></div>
 </div>
 
-<div id="overlay">
-  <canvas id="game"></canvas>
-  <div id="controls">
-    <div class="ctrl" data-k="ArrowLeft">◀</div>
-    <div class="ctrl" data-k="ArrowRight">▶</div>
-    <div class="ctrl" data-k="ArrowUp">▲</div>
+<div id="overlay" role="dialog" aria-hidden="true" aria-label="Game overlay">
+  <canvas id="game" aria-hidden="false"></canvas>
+  <div id="controls" aria-hidden="false">
+    <div class="ctrl" data-k="ArrowLeft" aria-label="Left">◀</div>
+    <div class="ctrl" data-k="ArrowRight" aria-label="Right">▶</div>
+    <div class="ctrl" data-k="ArrowUp" aria-label="Jump">▲</div>
   </div>
 </div>
 
 <script>
+/* COLORS (moved up so games can use them immediately) */
+const varNeon = "#00ff95";
+const varDanger = "#ff0066";
+const varBg = "#050608";
+
 /* HUB DATA */
-const games=[{id:"platformer",name:"Platformer"}];
+const games = [{ id: "platformer", name: "Platformer" }];
 
-const grid=document.getElementById("grid");
-const overlay=document.getElementById("overlay");
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
-const controls=document.getElementById("controls");
-const keys={};
+const grid = document.getElementById("grid");
+const overlay = document.getElementById("overlay");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const controls = document.getElementById("controls");
+const keys = {};
 
-games.forEach(g=>{
-  const c=document.createElement("div");
-  c.className="card";
-  c.innerHTML=`<h3>${g.name}</h3><button class="play">Play</button>`;
-  c.querySelector(".play").onclick=()=>startGame(g.id);
+// add entries to UI
+games.forEach(g => {
+  const c = document.createElement("div");
+  c.className = "card";
+  c.innerHTML = `<h3>${g.name}</h3><button class="play">Play</button>`;
+  c.querySelector(".play").onclick = () => startGame(g.id);
   grid.appendChild(c);
 });
 
-function resize(){
-  canvas.width=innerWidth;
-  canvas.height=innerHeight;
+/* HiDPI resize */
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  canvas.width = Math.max(1, Math.floor(w * dpr));
+  canvas.height = Math.max(1, Math.floor(h * dpr));
+  // set transform so drawing is in CSS pixels but backed by device pixels
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
-window.addEventListener("resize",resize);
+window.addEventListener("resize", resize);
+resize();
 
 /* INPUT */
-window.addEventListener("keydown",e=>{
-  keys[e.key]=true;
-  if(e.key==="Escape") exitGame();
+window.addEventListener("keydown", e => {
+  // prevent arrows from scrolling
+  if (e.key.startsWith("Arrow")) e.preventDefault();
+  keys[e.key] = true;
+  if (e.key === "Escape") exitGame();
 });
-window.addEventListener("keyup",e=>keys[e.key]=false);
+window.addEventListener("keyup", e => {
+  keys[e.key] = false;
+});
 
-document.querySelectorAll(".ctrl").forEach(b=>{
-  b.ontouchstart=()=>keys[b.dataset.k]=true;
-  b.ontouchend=()=>keys[b.dataset.k]=false;
+// touch controls - preventDefault to avoid synthetic mouse events and scrolling
+document.querySelectorAll(".ctrl").forEach(b => {
+  b.addEventListener("touchstart", ev => {
+    ev.preventDefault();
+    keys[b.dataset.k] = true;
+  }, { passive: false });
+  b.addEventListener("touchend", ev => {
+    ev.preventDefault();
+    keys[b.dataset.k] = false;
+  }, { passive: false });
+  b.addEventListener("touchcancel", ev => {
+    ev.preventDefault();
+    keys[b.dataset.k] = false;
+  }, { passive: false });
 });
+
+/* show controls only on touch devices */
+const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 /* ENGINE */
-let game=null;
+let game = null;
+let rafId = null;
 
-function startGame(id){
+function startGame(id) {
   resize();
-  overlay.style.display="block";
-  controls.style.display="flex";
-  game=Games[id];
+  overlay.style.display = "block";
+  overlay.setAttribute("aria-hidden", "false");
+  if (isTouch) controls.style.display = "flex";
+  game = Games[id];
   game.init();
-  requestAnimationFrame(loop);
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
 }
-function exitGame(){
-  overlay.style.display="none";
-  controls.style.display="none";
-  game=null;
+function exitGame() {
+  overlay.style.display = "none";
+  overlay.setAttribute("aria-hidden", "true");
+  controls.style.display = "none";
+  game = null;
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
 }
-function loop(){
-  if(!game) return;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function loop() {
+  if (!game) return;
+  // clear in CSS pixels (context transform handles DPR)
+  ctx.fillStyle = varBg;
+  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
   game.update();
   game.draw();
-  requestAnimationFrame(loop);
+  rafId = requestAnimationFrame(loop);
 }
 
 /* GAMES */
-const Games={
+const Games = {
+  platformer: {
+    init() {
+      this.T = 32;
+      this.camX = 0;
+      this.spawn = { x: 64, y: 64 };
 
-platformer:{
-  init(){
-    this.T=32;
-    this.camX=0;
-    this.spawn={x:64,y:64};
+      this.p = {
+        x: this.spawn.x, y: this.spawn.y,
+        w: 28, h: 28, vx: 0, vy: 0, onGround: false
+      };
 
-    this.p={
-      x:this.spawn.x,y:this.spawn.y,
-      w:28,h:28,vx:0,vy:0,onGround:false
-    };
+      this.gravity = 0.9;
+      this.jumpPower = -15;
+      this.speed = 4;
 
-    this.gravity=0.9;
-    this.jumpPower=-15;
-    this.speed=4;
+      this.map = [
+        "0000000000000000000000000000000000",
+        "0000000000000000000000000000000000",
+        "0000000000011110000000000000000000",
+        "0000000000000000000000000111100000",
+        "0000000111100000000000000000000000",
+        "0000000000000000000111100000000000",
+        "0000000000000000000000000000000000",
+        "0001110000000000000000000111100000",
+        "0000000000001110000000000000000000",
+        "0000000000000000000000000000000000",
+        "1111111111111111111111111111111111",
+        "1111111111111111111111111111111111"
+      ];
 
-    this.map=[
-      "0000000000000000000000000000000000",
-      "0000000000000000000000000000000000",
-      "0000000000011110000000000000000000",
-      "0000000000000000000000000111100000",
-      "0000000111100000000000000000000000",
-      "0000000000000000000111100000000000",
-      "0000000000000000000000000000000000",
-      "0001110000000000000000000111100000",
-      "0000000000001110000000000000000000",
-      "0000000000000000000000000000000000",
-      "1111111111111111111111111111111111",
-      "1111111111111111111111111111111111"
-    ];
+      this.spikes = [{ x: 12, y: 10 }, { x: 13, y: 10 }, { x: 22, y: 10 }];
 
-    this.spikes=[{x:12,y:10},{x:13,y:10},{x:22,y:10}];
+      this.checkpoint = { x: this.spawn.x, y: this.spawn.y };
 
-    this.checkpoint={x:this.spawn.x,y:this.spawn.y};
+      this.enemies = [
+        { x: 420, y: 288, w: 28, h: 28, dir: 1 },
+        { x: 760, y: 288, w: 28, h: 28, dir: -1 }
+      ];
 
-    this.enemies=[
-      {x:420,y:288,w:28,h:28,dir:1},
-      {x:760,y:288,w:28,h:28,dir:-1}
-    ];
+      this.moving = [
+        { x: 520, y: 240, w: 64, h: 12, base: 520, range: 80, dir: 1 }
+      ];
+    },
 
-    this.moving=[
-      {x:520,y:240,w:64,h:12,base:520,range:80,dir:1}
-    ];
-  },
+    update() {
+      const p = this.p;
 
-  update(){
-    const p=this.p;
+      if (keys.ArrowLeft) p.vx = -this.speed;
+      else if (keys.ArrowRight) p.vx = this.speed;
+      else p.vx = 0;
 
-    if(keys.ArrowLeft) p.vx=-this.speed;
-    else if(keys.ArrowRight) p.vx=this.speed;
-    else p.vx=0;
-
-    if(keys.ArrowUp&&p.onGround){
-      p.vy=this.jumpPower;
-      p.onGround=false;
-    }
-
-    p.vy+=this.gravity;
-
-    p.x+=p.vx;
-    this.resolve("x");
-    p.y+=p.vy;
-    this.resolve("y");
-
-    this.camX=p.x-canvas.width/2;
-    if(this.camX<0) this.camX=0;
-
-    this.moving.forEach(m=>{
-      m.x+=m.dir*1.5;
-      if(Math.abs(m.x-m.base)>m.range) m.dir*=-1;
-
-      if(
-        p.x+p.w>m.x &&
-        p.x<m.x+m.w &&
-        p.y+p.h<=m.y+6 &&
-        p.y+p.h>=m.y-6 &&
-        p.vy>=0
-      ){
-        p.y=m.y-p.h;
-        p.vy=0;
-        p.onGround=true;
-        p.x+=m.dir*1.5;
+      if ((keys.ArrowUp || keys.Space) && p.onGround) {
+        p.vy = this.jumpPower;
+        p.onGround = false;
       }
-    });
 
-    this.enemies.forEach(e=>{
-      e.x+=e.dir*1.5;
-      if(e.x<300||e.x>900) e.dir*=-1;
-      if(
-        p.x<p.x+p.w &&
-        p.x+p.w>e.x &&
-        p.y<p.y+p.h &&
-        p.y+p.h>e.y
-      ){
-        this.respawn();
-      }
-    });
+      p.vy += this.gravity;
 
-    this.spikes.forEach(s=>{
-      const sx=s.x*this.T;
-      const sy=s.y*this.T;
-      if(
-        p.x<sx+this.T&&p.x+p.w>sx&&
-        p.y<sy+this.T&&p.y+p.h>sy
-      ) this.respawn();
-    });
+      p.x += p.vx;
+      this.resolve("x");
+      p.y += p.vy;
+      this.resolve("y");
 
-    if(p.y>canvas.height+200) this.respawn();
-  },
+      this.camX = p.x - window.innerWidth / 2;
+      if (this.camX < 0) this.camX = 0;
 
-  respawn(){
-    this.p.x=this.checkpoint.x;
-    this.p.y=this.checkpoint.y;
-    this.p.vx=this.p.vy=0;
-  },
+      // moving platforms
+      this.moving.forEach(m => {
+        m.x += m.dir * 1.5;
+        if (Math.abs(m.x - m.base) > m.range) m.dir *= -1;
 
-  resolve(axis){
-    const p=this.p,T=this.T;
-    p.onGround=false;
-
-    const l=Math.floor(p.x/T);
-    const r=Math.floor((p.x+p.w)/T);
-    const t=Math.floor(p.y/T);
-    const b=Math.floor((p.y+p.h)/T);
-
-    for(let y=t;y<=b;y++)for(let x=l;x<=r;x++){
-      if(this.map[y]?.[x]!=="1") continue;
-      const tx=x*T,ty=y*T;
-      if(
-        p.x<tx+T&&p.x+p.w>tx&&
-        p.y<ty+T&&p.y+p.h>ty
-      ){
-        if(axis==="x"){
-          if(p.vx>0) p.x=tx-p.w;
-          if(p.vx<0) p.x=tx+T;
-          p.vx=0;
+        // simple standing-on-platform detection
+        if (
+          p.x + p.w > m.x &&
+          p.x < m.x + (m.w || 0) &&
+          p.y + p.h <= m.y + 6 &&
+          p.y + p.h >= m.y - 6 &&
+          p.vy >= 0
+        ) {
+          p.y = m.y - p.h;
+          p.vy = 0;
+          p.onGround = true;
+          p.x += m.dir * 1.5;
         }
-        if(axis==="y"){
-          if(p.vy>0){
-            p.y=ty-p.h;
-            p.vy=0;
-            p.onGround=true;
-            this.checkpoint={x:p.x,y:p.y};
-          }
-          if(p.vy<0){
-            p.y=ty+T;
-            p.vy=0;
+      });
+
+      // enemies: move and detect collision properly
+      this.enemies.forEach(e => {
+        e.x += e.dir * 1.5;
+        if (e.x < 300 || e.x > 900) e.dir *= -1;
+
+        if (
+          p.x < e.x + e.w &&
+          p.x + p.w > e.x &&
+          p.y < e.y + e.h &&
+          p.y + p.h > e.y
+        ) {
+          this.respawn();
+        }
+      });
+
+      // spikes
+      this.spikes.forEach(s => {
+        const sx = s.x * this.T;
+        const sy = s.y * this.T;
+        if (
+          p.x < sx + this.T && p.x + p.w > sx &&
+          p.y < sy + this.T && p.y + p.h > sy
+        ) this.respawn();
+      });
+
+      if (p.y > window.innerHeight + 200) this.respawn();
+    },
+
+    respawn() {
+      this.p.x = this.checkpoint.x;
+      this.p.y = this.checkpoint.y;
+      this.p.vx = this.p.vy = 0;
+    },
+
+    resolve(axis) {
+      const p = this.p, T = this.T;
+      p.onGround = false;
+
+      const l = Math.floor(p.x / T);
+      const r = Math.floor((p.x + p.w) / T);
+      const t = Math.floor(p.y / T);
+      const b = Math.floor((p.y + p.h) / T);
+
+      for (let y = t; y <= b; y++) {
+        const row = this.map[y];
+        for (let x = l; x <= r; x++) {
+          if (!row || row[x] !== "1") continue;
+          const tx = x * T, ty = y * T;
+          if (
+            p.x < tx + T && p.x + p.w > tx &&
+            p.y < ty + T && p.y + p.h > ty
+          ) {
+            if (axis === "x") {
+              if (p.vx > 0) p.x = tx - p.w;
+              else if (p.vx < 0) p.x = tx + T;
+              p.vx = 0;
+            }
+            if (axis === "y") {
+              if (p.vy > 0) {
+                p.y = ty - p.h;
+                p.vy = 0;
+                p.onGround = true;
+                this.checkpoint = { x: p.x, y: p.y };
+              } else if (p.vy < 0) {
+                p.y = ty + T;
+                p.vy = 0;
+              }
+            }
           }
         }
       }
-    }
-  },
+    },
 
-  draw(){
-    ctx.fillStyle=varBg;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    draw() {
+      // background already cleared in main loop, but ensure fill in case
+      ctx.fillStyle = varBg;
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
-    for(let y=0;y<this.map.length;y++)for(let x=0;x<this.map[0].length;x++){
-      if(this.map[y][x]==="1"){
-        ctx.fillStyle="#2a2a2a";
-        ctx.fillRect(x*this.T-this.camX,y*this.T,this.T,this.T);
+      // tiles
+      for (let y = 0; y < this.map.length; y++) {
+        const row = this.map[y] || "";
+        for (let x = 0; x < row.length; x++) {
+          if (row[x] === "1") {
+            ctx.fillStyle = "#2a2a2a";
+            ctx.fillRect(x * this.T - this.camX, y * this.T, this.T, this.T);
+          }
+        }
       }
+
+      // spikes
+      ctx.fillStyle = varDanger;
+      this.spikes.forEach(s => {
+        const x = s.x * this.T - this.camX;
+        const y = s.y * this.T;
+        ctx.beginPath();
+        ctx.moveTo(x, y + this.T);
+        ctx.lineTo(x + this.T / 2, y);
+        ctx.lineTo(x + this.T, y + this.T);
+        ctx.closePath();
+        ctx.fill();
+      });
+
+      // moving platforms
+      ctx.fillStyle = "#888";
+      this.moving.forEach(m => {
+        ctx.fillRect(m.x - this.camX, m.y, m.w, m.h);
+      });
+
+      // enemies
+      ctx.fillStyle = "#ffb000";
+      this.enemies.forEach(e => {
+        ctx.fillRect(e.x - this.camX, e.y, e.w, e.h);
+      });
+
+      // player with neon glow
+      ctx.save();
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = varNeon;
+      ctx.fillStyle = varNeon;
+      ctx.fillRect(this.p.x - this.camX, this.p.y, this.p.w, this.p.h);
+      ctx.restore();
     }
-
-    ctx.fillStyle=varDanger;
-    this.spikes.forEach(s=>{
-      const x=s.x*this.T-this.camX;
-      const y=s.y*this.T;
-      ctx.beginPath();
-      ctx.moveTo(x,y+this.T);
-      ctx.lineTo(x+this.T/2,y);
-      ctx.lineTo(x+this.T,y+this.T);
-      ctx.fill();
-    });
-
-    ctx.fillStyle="#888";
-    this.moving.forEach(m=>{
-      ctx.fillRect(m.x-this.camX,m.y,m.w,m.h);
-    });
-
-    ctx.fillStyle="#ffb000";
-    this.enemies.forEach(e=>{
-      ctx.fillRect(e.x-this.camX,e.y,e.w,e.h);
-    });
-
-    ctx.shadowBlur=20;
-    ctx.shadowColor=varNeon;
-    ctx.fillStyle=varNeon;
-    ctx.fillRect(this.p.x-this.camX,this.p.y,this.p.w,this.p.h);
-    ctx.shadowBlur=0;
   }
-}
-
 };
 
-const varNeon="#00ff95";
-const varDanger="#ff0066";
-const varBg="#050608";
+/* expose a safe way to start game from console for testing */
+window.startNeon = () => startGame("platformer");
 </script>
 
 </body>
