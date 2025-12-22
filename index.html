@@ -244,25 +244,106 @@ const Games={
     }
   },
 
-  platformer:{
-    init(){
-      this.x=50; this.y=200; this.vy=0;
-    },
-    update(){
-      if(keys.ArrowUp && this.y>=200) this.vy=-14;
-      this.vy+=1;
-      this.y+=this.vy;
-      if(this.y>200){ this.y=200; this.vy=0; }
-      if(keys.ArrowLeft) this.x-=5;
-      if(keys.ArrowRight) this.x+=5;
-    },
-    draw(){
-      ctx.fillStyle=varNeon;
-      ctx.fillRect(this.x,this.y,30,30);
-      ctx.fillStyle="#444";
-      ctx.fillRect(0,230,canvas.width,10);
-    }
+platformer:{
+  init(){
+    this.player = {
+      x: 50, y: 300,
+      w: 28, h: 28,
+      vx: 0, vy: 0,
+      onGround: false
+    };
+
+    this.gravity = 0.8;
+    this.jumpPower = -14;
+
+    // platforms
+    this.platforms = [
+      {x:0, y:350, w:canvas.width, h:40},   // ground
+      {x:150, y:280, w:120, h:20},
+      {x:320, y:230, w:120, h:20},
+      {x:520, y:180, w:120, h:20}
+    ];
+
+    // spikes
+    this.spikes = [
+      {x:260, y:330, w:40, h:20},
+      {x:420, y:330, w:40, h:20}
+    ];
   },
+
+  update(){
+    const p = this.player;
+
+    // input
+    if(keys.ArrowLeft) p.vx = -4;
+    else if(keys.ArrowRight) p.vx = 4;
+    else p.vx = 0;
+
+    if(keys.ArrowUp && p.onGround){
+      p.vy = this.jumpPower;
+      p.onGround = false;
+    }
+
+    // physics
+    p.vy += this.gravity;
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // collisions
+    p.onGround = false;
+    this.platforms.forEach(pl=>{
+      if(
+        p.x < pl.x + pl.w &&
+        p.x + p.w > pl.x &&
+        p.y < pl.y + pl.h &&
+        p.y + p.h > pl.y &&
+        p.vy >= 0
+      ){
+        p.y = pl.y - p.h;
+        p.vy = 0;
+        p.onGround = true;
+      }
+    });
+
+    // spikes = death
+    this.spikes.forEach(s=>{
+      if(
+        p.x < s.x + s.w &&
+        p.x + p.w > s.x &&
+        p.y < s.y + s.h &&
+        p.y + p.h > s.y
+      ){
+        // restart level
+        this.init();
+      }
+    });
+
+    // fell off screen
+    if(p.y > canvas.height) this.init();
+  },
+
+  draw(){
+    // player
+    ctx.fillStyle = "#00ff95";
+    ctx.fillRect(this.player.x,this.player.y,this.player.w,this.player.h);
+
+    // platforms
+    ctx.fillStyle = "#444";
+    this.platforms.forEach(pl=>{
+      ctx.fillRect(pl.x,pl.y,pl.w,pl.h);
+    });
+
+    // spikes
+    ctx.fillStyle = "#ff0066";
+    this.spikes.forEach(s=>{
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y + s.h);
+      ctx.lineTo(s.x + s.w/2, s.y);
+      ctx.lineTo(s.x + s.w, s.y + s.h);
+      ctx.fill();
+    });
+  }
+},
 
   tower:{
     init(){
