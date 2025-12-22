@@ -1,6 +1,6 @@
 {
-  "name": "Neon Arcade",
-  "short_name": "Arcade",
+  "name": "Games Hub",
+  "short_name": "Games",
   "start_url": "/",
   "display": "fullscreen",
   "background_color": "#050608",
