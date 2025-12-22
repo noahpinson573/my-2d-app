@@ -26,8 +26,37 @@ body{
 }
 
 /* ===== CANVAS ===== */
-canvas{
-  display:block;
+canvas{display:block}
+
+/* ===== BACKGROUND GRID ===== */
+#grid{
+  position:fixed;
+  inset:0;
+  background:
+    linear-gradient(rgba(0,255,234,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,234,0.04) 1px, transparent 1px);
+  background-size:40px 40px;
+  animation:gridMove 20s linear infinite;
+  pointer-events:none;
+}
+@keyframes gridMove{
+  from{background-position:0 0}
+  to{background-position:40px 40px}
+}
+
+/* ===== SCANLINES ===== */
+#scanlines{
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.03),
+    rgba(255,255,255,0.03) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  pointer-events:none;
+  mix-blend-mode:overlay;
 }
 
 /* ===== OVERLAYS ===== */
@@ -38,26 +67,53 @@ canvas{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  background:rgba(5,6,8,0.88);
+  background:rgba(5,6,8,0.85);
   backdrop-filter: blur(6px);
 }
 
 .hidden{display:none}
 
+/* ===== TITLE ===== */
+h1{
+  font-size:64px;
+  letter-spacing:6px;
+  margin-bottom:40px;
+  animation:flicker 3s infinite, glowPulse 2.5s infinite;
+  text-shadow:
+    0 0 10px var(--neon),
+    0 0 40px rgba(0,255,234,0.6);
+}
+
+@keyframes flicker{
+  0%,100%{opacity:1}
+  5%{opacity:0.8}
+  10%{opacity:1}
+  15%{opacity:0.6}
+  20%{opacity:1}
+}
+
+@keyframes glowPulse{
+  0%{text-shadow:0 0 10px var(--neon)}
+  50%{text-shadow:0 0 40px var(--neon),0 0 90px rgba(0,255,234,0.7)}
+  100%{text-shadow:0 0 10px var(--neon)}
+}
+
 /* ===== BUTTONS ===== */
 .btn{
-  padding:18px 60px;
-  font-size:18px;
-  margin:12px;
+  position:relative;
+  padding:20px 70px;
+  margin:14px;
+  font-size:20px;
+  letter-spacing:3px;
   background:transparent;
   color:var(--neon);
   border:2px solid var(--neon);
-  border-radius:14px;
+  border-radius:16px;
   cursor:pointer;
-  letter-spacing:2px;
   box-shadow:
-    0 0 12px var(--neon),
-    inset 0 0 12px rgba(0,255,234,0.4);
+    0 0 18px var(--neon),
+    inset 0 0 18px rgba(0,255,234,0.4);
+  overflow:hidden;
   transition:0.25s;
 }
 
@@ -65,18 +121,32 @@ canvas{
   background:var(--neon);
   color:#050608;
   box-shadow:
-    0 0 25px var(--neon),
-    0 0 60px rgba(0,255,234,0.6);
-  transform:scale(1.05);
+    0 0 30px var(--neon),
+    0 0 80px rgba(0,255,234,0.7);
+  transform:scale(1.06);
 }
 
-/* ===== TITLES ===== */
-h1{
-  font-size:56px;
-  margin-bottom:30px;
-  text-shadow:
-    0 0 10px var(--neon),
-    0 0 40px rgba(0,255,234,0.6);
+/* ENERGY SWEEP */
+.btn::after{
+  content:"";
+  position:absolute;
+  top:0;
+  left:-120%;
+  width:80%;
+  height:100%;
+  background:linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,0.7),
+    transparent
+  );
+  transform:skewX(-20deg);
+  animation:sweep 3s infinite;
+}
+
+@keyframes sweep{
+  from{left:-120%}
+  to{left:220%}
 }
 
 /* ===== HUD ===== */
@@ -84,32 +154,24 @@ h1{
   position:fixed;
   top:20px;
   left:20px;
+  font-size:20px;
+  text-shadow:0 0 10px var(--neon);
+}
+
+/* ===== SETTINGS ===== */
+select{
+  background:#050608;
+  color:var(--neon);
+  border:2px solid var(--neon);
+  padding:10px;
   font-size:18px;
-  line-height:1.6;
-  text-shadow:0 0 8px var(--neon);
-}
-
-/* ===== PAUSE ===== */
-#pause h2,
-#settings h2{
-  margin-bottom:20px;
-}
-
-/* ===== BACKGROUND GRID ===== */
-#grid{
-  position:fixed;
-  inset:0;
-  background:
-    linear-gradient(rgba(0,255,234,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,234,0.05) 1px, transparent 1px);
-  background-size:40px 40px;
-  pointer-events:none;
 }
 </style>
 </head>
 <body>
 
 <div id="grid"></div>
+<div id="scanlines"></div>
 
 <!-- MENU -->
 <div id="menu" class="overlay">
@@ -143,44 +205,39 @@ h1{
 
 <script>
 /* ================= CORE ================= */
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 function resize(){
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
+  canvas.width=innerWidth;
+  canvas.height=innerHeight;
 }
-addEventListener("resize", resize);
+addEventListener("resize",resize);
 resize();
 
 /* ================= INPUT ================= */
-const Input = {
-  keys:{},
-  init(){
-    addEventListener("keydown",e=>{
-      this.keys[e.key]=true;
-      if(e.key==="Escape") Engine.togglePause();
-    });
-    addEventListener("keyup",e=>this.keys[e.key]=false);
-  }
-};
+const Input={keys:{},init(){
+  addEventListener("keydown",e=>{
+    this.keys[e.key]=true;
+    if(e.key==="Escape")Engine.togglePause();
+  });
+  addEventListener("keyup",e=>this.keys[e.key]=false);
+}};
 
 /* ================= AUDIO ================= */
-const AudioSys = {
+const AudioSys={
   ctx:new (window.AudioContext||window.webkitAudioContext)(),
-  beep(freq=500){
+  beep(freq=400){
     const o=this.ctx.createOscillator();
     const g=this.ctx.createGain();
     o.frequency.value=freq;
-    g.gain.value=0.1;
-    o.connect(g);
-    g.connect(this.ctx.destination);
-    o.start();
-    setTimeout(()=>o.stop(),80);
+    g.gain.value=0.08;
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(); setTimeout(()=>o.stop(),80);
   }
 };
 
 /* ================= ENGINE ================= */
-const Engine = {
+const Engine={
   state:"menu",
   game:null,
   score:0,
@@ -195,70 +252,49 @@ const Engine = {
   },
 
   update(dt){
-    if(this.state==="game") this.game.update(dt);
+    if(this.state==="game")this.game.update(dt);
   },
 
   draw(){
-    if(this.state==="game") this.game.draw();
+    if(this.state==="game")this.game.draw();
   },
 
   togglePause(){
-    if(this.state==="game"){
-      this.state="pause";
-      show("pause");
-    }else if(this.state==="pause"){
-      this.resume();
-    }
+    if(this.state==="game"){this.state="pause";show("pause")}
+    else if(this.state==="pause")this.resume();
   },
 
-  resume(){
-    this.state="game";
-    hide("pause");
-  },
+  resume(){this.state="game";hide("pause")},
+  quit(){this.state="menu";hideAll();show("menu")},
 
-  quit(){
-    this.state="menu";
-    hideAll();
-    show("menu");
-  },
-
-  openSettings(){
-    hideAll();
-    show("settings");
-  },
-
+  openSettings(){hideAll();show("settings")},
   saveSettings(){
     this.difficulty=document.getElementById("difficulty").value;
     localStorage.setItem("difficulty",this.difficulty);
-    hide("settings");
-    show("menu");
+    hide("settings");show("menu");
   }
 };
 
 /* ================= GAMES ================= */
-const Games = {
-
+const Games={
   dodge:{
     init(){
-      this.p={x:canvas.width/2,y:canvas.height/2,s:28,v:400*Engine.difficulty};
-      this.e={x:100,y:100,s:40,vx:260*Engine.difficulty,vy:260*Engine.difficulty};
+      this.p={x:canvas.width/2,y:canvas.height/2,s:28,v:420*Engine.difficulty};
+      this.e={x:100,y:100,s:42,vx:280*Engine.difficulty,vy:280*Engine.difficulty};
     },
     update(dt){
       const p=this.p;
-      if(Input.keys.w||Input.keys.ArrowUp) p.y-=p.v*dt;
-      if(Input.keys.s||Input.keys.ArrowDown) p.y+=p.v*dt;
-      if(Input.keys.a||Input.keys.ArrowLeft) p.x-=p.v*dt;
-      if(Input.keys.d||Input.keys.ArrowRight) p.x+=p.v*dt;
+      if(Input.keys.w||Input.keys.ArrowUp)p.y-=p.v*dt;
+      if(Input.keys.s||Input.keys.ArrowDown)p.y+=p.v*dt;
+      if(Input.keys.a||Input.keys.ArrowLeft)p.x-=p.v*dt;
+      if(Input.keys.d||Input.keys.ArrowRight)p.x+=p.v*dt;
 
       const e=this.e;
       e.x+=e.vx*dt; e.y+=e.vy*dt;
-      if(e.x<0||e.x+e.s>canvas.width) e.vx*=-1;
-      if(e.y<0||e.y+e.s>canvas.height) e.vy*=-1;
+      if(e.x<0||e.x+e.s>canvas.width)e.vx*=-1;
+      if(e.y<0||e.y+e.s>canvas.height)e.vy*=-1;
 
-      if(
-        p.x<e.x+e.s&&p.x+p.s>e.x&&
-        p.y<e.y+e.s&&p.y+p.s>e.y
-      ){
+      if(p.x<e.x+e.s&&p.x+p.s>e.x&&p.y<e.y+e.s&&p.y+p.s>e.y){
         AudioSys.beep(200);
         Engine.quit();
       }
@@ -267,10 +303,10 @@ const Games = {
     },
     draw(){
       ctx.shadowBlur=20;
-      ctx.shadowColor="var(--neon)";
+      ctx.shadowColor=varNeon;
       ctx.fillStyle="#00ffea";
       ctx.fillRect(this.p.x,this.p.y,this.p.s,this.p.s);
-      ctx.shadowColor="var(--danger)";
+      ctx.shadowColor="#ff0066";
       ctx.fillStyle="#ff0066";
       ctx.fillRect(this.e.x,this.e.y,this.e.s,this.e.s);
       hud.innerHTML=`SCORE<br>${Math.floor(Engine.score)}`;
@@ -282,15 +318,12 @@ const Games = {
     init(){this.t=null},
     update(){
       if(!this.t){
-        this.t={
-          x:Math.random()*(canvas.width-50),
-          y:Math.random()*(canvas.height-50)
-        };
+        this.t={x:Math.random()*(canvas.width-50),y:Math.random()*(canvas.height-50)};
       }
     },
     draw(){
-      ctx.shadowBlur=20;
-      ctx.shadowColor="var(--neon)";
+      ctx.shadowBlur=25;
+      ctx.shadowColor="#00ffea";
       ctx.fillStyle="#00ffea";
       ctx.fillRect(this.t.x,this.t.y,50,50);
       hud.innerHTML="CLICK FAST";
@@ -302,19 +335,16 @@ const Games = {
 /* ================= LOOP ================= */
 let last=0;
 function loop(t){
-  const dt=(t-last)/1000;
-  last=t;
+  const dt=(t-last)/1000; last=t;
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  Engine.update(dt);
-  Engine.draw();
+  Engine.update(dt); Engine.draw();
   requestAnimationFrame(loop);
 }
 
 /* ================= UI ================= */
 const hud=document.getElementById("hud");
-function hideAll(){
-  document.querySelectorAll(".overlay").forEach(e=>e.classList.add("hidden"));
-}
+const varNeon="#00ffea";
+function hideAll(){document.querySelectorAll(".overlay").forEach(e=>e.classList.add("hidden"))}
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
 
