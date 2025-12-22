@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Noah’s Games Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Games Hub</title>
 
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#050608">
@@ -11,18 +11,17 @@
 <style>
 :root{
   --bg:#050608;
-  --panel:#0b1116;
   --neon:#00ff95;
-  --neon-soft:rgba(0,255,150,0.25);
-  --text:#d7fff0;
+  --neonSoft:rgba(0,255,150,.25);
+  --text:#eafff6;
 }
 
 *{box-sizing:border-box}
 
 body{
   margin:0;
-  background:radial-gradient(circle at top, #0d151b, #050608 70%);
-  font-family:system-ui, Arial, sans-serif;
+  background:radial-gradient(circle at top,#0d151b,#050608 70%);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   color:var(--text);
   overflow:hidden;
 }
@@ -31,208 +30,145 @@ body{
 #topbar{
   display:flex;
   align-items:center;
-  gap:16px;
-  padding:18px 24px;
-  border-bottom:1px solid var(--neon-soft);
-  background:rgba(5,6,8,0.85);
+  gap:14px;
+  padding:16px;
+  border-bottom:1px solid var(--neonSoft);
+  background:rgba(5,6,8,.85);
 }
 
 #logo{
   width:40px;height:40px;border-radius:10px;
   background:linear-gradient(135deg,#00ff95,#00c27a);
   display:grid;place-items:center;
-  font-weight:900;color:#02150c;
+  font-weight:900;color:#022;
 }
 
-#title{font-size:22px;font-weight:600;color:var(--neon)}
+#title{font-size:20px;font-weight:600;color:var(--neon)}
 
-#topbar-right{
-  margin-left:auto;
-  display:flex;
-  gap:12px;
-}
-
-input{
-  background:#0b141a;
-  border:1px solid var(--neon-soft);
-  color:var(--text);
-  padding:10px 14px;
-  border-radius:20px;
-}
-
-/* ===== CONTENT ===== */
 #content{
-  height:calc(100vh - 78px);
+  height:calc(100vh - 74px);
   overflow-y:auto;
 }
 
-section{padding:24px}
-h2{color:var(--neon);margin-bottom:16px}
-
-/* ===== ROW ===== */
-.row{
-  display:flex;
-  gap:20px;
-  overflow-x:auto;
+/* ===== GRID ===== */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:16px;
+  padding:16px;
 }
 
-/* ===== CARD ===== */
 .card{
-  min-width:260px;
-  background:linear-gradient(180deg,#0d1b16,#070c0f);
-  border-radius:18px;
+  background:#0b141a;
+  border:1px solid var(--neonSoft);
+  border-radius:16px;
   padding:14px;
-  border:1px solid var(--neon-soft);
-  box-shadow:0 0 40px rgba(0,255,150,0.06);
   display:flex;
   flex-direction:column;
   gap:12px;
-  transition:.2s;
-}
-
-.card.focus{
-  outline:2px solid var(--neon);
-  transform:scale(1.05);
 }
 
 .thumb{
-  height:140px;
+  height:100px;
   border-radius:12px;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(0,255,150,0.15),
-      rgba(0,255,150,0.15) 2px,
-      transparent 2px,
-      transparent 6px
-    );
+  background:linear-gradient(135deg,#00ff95,#00c27a);
+  opacity:.2;
 }
 
 .card h3{margin:0;color:var(--neon)}
-.tag{font-size:13px;opacity:.8}
-
-.card-footer{
-  display:flex;
-  align-items:center;
-  margin-top:auto;
-}
-
 .play{
-  margin-left:auto;
-  padding:6px 16px;
+  margin-top:auto;
+  padding:12px;
   border-radius:14px;
-  border:1px solid var(--neon-soft);
-  background:#0b141a;
+  border:1px solid var(--neonSoft);
+  background:#050608;
   color:var(--text);
   cursor:pointer;
 }
 
 /* ===== GAME OVERLAY ===== */
-#gameOverlay{
+#overlay{
   position:fixed;
   inset:0;
   background:#050608;
   display:none;
-  z-index:999;
+  z-index:1000;
 }
 
 canvas{display:block}
 
-/* ===== SCROLL ===== */
-::-webkit-scrollbar{height:8px;width:8px}
-::-webkit-scrollbar-thumb{background:var(--neon-soft);border-radius:10px}
+/* ===== MOBILE CONTROLS ===== */
+#touchControls{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  display:none;
+  gap:10px;
+}
+
+.tc{
+  width:60px;height:60px;
+  border-radius:50%;
+  background:rgba(0,255,150,.15);
+  border:1px solid var(--neonSoft);
+  color:white;
+  display:grid;place-items:center;
+  font-size:20px;
+  user-select:none;
+}
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
 <div id="topbar">
   <div id="logo">N</div>
-  <div id="title">Noah’s Games Hub</div>
-  <div id="topbar-right">
-    <input placeholder="Search games">
-  </div>
+  <div id="title">Games Hub</div>
 </div>
 
 <div id="content">
-
-<!-- CONTINUE -->
-<section>
-  <h2>Continue Playing</h2>
-  <div class="row" id="recentRow"></div>
-</section>
-
-<!-- ALL GAMES -->
-<section>
-  <h2>All Games</h2>
-  <div class="row" id="allGames"></div>
-</section>
-
+  <div class="grid" id="gameGrid"></div>
 </div>
 
-<!-- GAME OVERLAY -->
-<div id="gameOverlay">
+<div id="overlay">
   <canvas id="game"></canvas>
+  <div id="touchControls">
+    <div class="tc" data-key="ArrowLeft">◀</div>
+    <div class="tc" data-key="ArrowRight">▶</div>
+    <div class="tc" data-key="ArrowUp">▲</div>
+    <div class="tc" data-key="ArrowDown">▼</div>
+  </div>
 </div>
 
 <script>
-/* ================= DATA ================= */
+/* ================= SETUP ================= */
 const games=[
-  {id:"tetris",name:"Tetris",tag:"Arcade"},
-  {id:"stack",name:"Stack",tag:"Arcade"},
-  {id:"clicker",name:"Clicker",tag:"Arcade"},
-  {id:"miner",name:"Miner",tag:"Sandbox"},
-  {id:"builder",name:"Builder",tag:"Sandbox"},
+ {id:"snake",name:"Snake"},
+ {id:"tetris",name:"Tetris"},
+ {id:"clicker",name:"Clicker"},
+ {id:"dodge",name:"Dodge"}
 ];
 
-/* ================= UI BUILD ================= */
-const allGames=document.getElementById("allGames");
-const recentRow=document.getElementById("recentRow");
-
-function createCard(game){
-  const c=document.createElement("div");
-  c.className="card";
-  c.tabIndex=0;
-  c.innerHTML=`
-    <div class="thumb"></div>
-    <h3>${game.name}</h3>
-    <div class="tag">${game.tag}</div>
-    <div class="card-footer">
-      ★
-      <button class="play">Play</button>
-    </div>
-  `;
-  c.querySelector(".play").onclick=()=>launchGame(game);
-  c.onclick=()=>focusCard(c);
-  return c;
-}
-
-games.forEach(g=>allGames.appendChild(createCard(g)));
-
-/* ================= RECENT ================= */
-function updateRecent(game){
-  let recent=JSON.parse(localStorage.getItem("recent")||"[]");
-  recent=recent.filter(id=>id!==game.id);
-  recent.unshift(game.id);
-  recent=recent.slice(0,5);
-  localStorage.setItem("recent",JSON.stringify(recent));
-  renderRecent();
-}
-
-function renderRecent(){
-  recentRow.innerHTML="";
-  const recent=JSON.parse(localStorage.getItem("recent")||"[]");
-  recent.forEach(id=>{
-    const g=games.find(x=>x.id===id);
-    if(g) recentRow.appendChild(createCard(g));
-  });
-}
-renderRecent();
-
-/* ================= GAME ENGINE (DEMO) ================= */
-const overlay=document.getElementById("gameOverlay");
+const grid=document.getElementById("gameGrid");
+const overlay=document.getElementById("overlay");
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
+const touchControls=document.getElementById("touchControls");
+
+let running=false,currentGame=null,keys={};
+
+/* ================= UI ================= */
+games.forEach(g=>{
+  const c=document.createElement("div");
+  c.className="card";
+  c.innerHTML=`
+    <div class="thumb"></div>
+    <h3>${g.name}</h3>
+    <button class="play">Play</button>
+  `;
+  c.querySelector(".play").onclick=()=>startGame(g.id);
+  grid.appendChild(c);
+});
 
 function resize(){
   canvas.width=innerWidth;
@@ -240,44 +176,137 @@ function resize(){
 }
 window.addEventListener("resize",resize);
 
-let running=false,x=0;
+/* ================= INPUT ================= */
+window.addEventListener("keydown",e=>keys[e.key]=true);
+window.addEventListener("keyup",e=>keys[e.key]=false);
 
-function launchGame(game){
-  updateRecent(game);
-  overlay.style.display="block";
+document.querySelectorAll(".tc").forEach(b=>{
+  b.ontouchstart=()=>keys[b.dataset.key]=true;
+  b.ontouchend=()=>keys[b.dataset.key]=false;
+});
+
+/* ================= ENGINE ================= */
+function startGame(id){
   resize();
+  overlay.style.display="block";
+  touchControls.style.display="flex";
+  currentGame=Games[id];
+  currentGame.init();
   running=true;
-  x=0;
   loop();
 }
 
 function exitGame(){
   running=false;
   overlay.style.display="none";
+  touchControls.style.display="none";
 }
 
+window.addEventListener("keydown",e=>{
+  if(e.key==="Escape") exitGame();
+});
+
+/* ================= LOOP ================= */
 function loop(){
   if(!running) return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#00ff95";
-  ctx.fillRect(x,canvas.height/2,60,60);
-  x+=4;
-  if(x>canvas.width) x=-60;
+  currentGame.update();
+  currentGame.draw();
   requestAnimationFrame(loop);
 }
 
-/* ================= INPUT ================= */
-window.addEventListener("keydown",e=>{
-  if(e.key==="Escape" && running) exitGame();
-});
+/* ================= GAMES ================= */
+const Games={
 
-/* ================= KEYBOARD NAV ================= */
-let focused=null;
-function focusCard(c){
-  if(focused) focused.classList.remove("focus");
-  focused=c;
-  c.classList.add("focus");
-}
+  snake:{
+    init(){
+      this.size=20;
+      this.snake=[{x:10,y:10}];
+      this.dir={x:1,y:0};
+      this.food={x:15,y:15};
+      this.tick=0;
+    },
+    update(){
+      if(++this.tick<6) return;
+      this.tick=0;
+      if(keys.ArrowUp) this.dir={x:0,y:-1};
+      if(keys.ArrowDown) this.dir={x:0,y:1};
+      if(keys.ArrowLeft) this.dir={x:-1,y:0};
+      if(keys.ArrowRight) this.dir={x:1,y:0};
+
+      const h={x:this.snake[0].x+this.dir.x,y:this.snake[0].y+this.dir.y};
+      if(h.x<0||h.y<0||h.x>canvas.width/this.size||h.y>canvas.height/this.size){
+        exitGame();return;
+      }
+      this.snake.unshift(h);
+      if(h.x===this.food.x&&h.y===this.food.y){
+        this.food={x:Math.floor(Math.random()*canvas.width/this.size),
+                   y:Math.floor(Math.random()*canvas.height/this.size)};
+      } else this.snake.pop();
+    },
+    draw(){
+      ctx.fillStyle="#00ff95";
+      this.snake.forEach(s=>ctx.fillRect(s.x*this.size,s.y*this.size,this.size-2,this.size-2));
+      ctx.fillStyle="#ff0066";
+      ctx.fillRect(this.food.x*this.size,this.food.y*this.size,this.size-2,this.size-2);
+    }
+  },
+
+  clicker:{
+    init(){this.score=0},
+    update(){},
+    draw(){
+      ctx.fillStyle="#00ff95";
+      ctx.beginPath();
+      ctx.arc(canvas.width/2,canvas.height/2,80,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle="#000";
+      ctx.font="40px system-ui";
+      ctx.textAlign="center";
+      ctx.fillText(this.score,canvas.width/2,canvas.height/2+15);
+    }
+  },
+
+  dodge:{
+    init(){
+      this.p={x:canvas.width/2,y:canvas.height/2};
+      this.e={x:100,y:100,vx:6,vy:5};
+    },
+    update(){
+      if(keys.ArrowUp) this.p.y-=6;
+      if(keys.ArrowDown) this.p.y+=6;
+      if(keys.ArrowLeft) this.p.x-=6;
+      if(keys.ArrowRight) this.p.x+=6;
+      this.e.x+=this.e.vx;
+      this.e.y+=this.e.vy;
+      if(this.e.x<0||this.e.x>canvas.width) this.e.vx*=-1;
+      if(this.e.y<0||this.e.y>canvas.height) this.e.vy*=-1;
+      if(Math.abs(this.p.x-this.e.x)<30&&Math.abs(this.p.y-this.e.y)<30) exitGame();
+    },
+    draw(){
+      ctx.fillStyle="#00ff95";
+      ctx.fillRect(this.p.x,this.p.y,30,30);
+      ctx.fillStyle="#ff0066";
+      ctx.fillRect(this.e.x,this.e.y,30,30);
+    }
+  },
+
+  tetris:{
+    init(){
+      this.x=canvas.width/2-40;
+      this.y=0;
+    },
+    update(){
+      if(keys.ArrowDown) this.y+=5;
+      if(this.y>canvas.height-40) exitGame();
+    },
+    draw(){
+      ctx.fillStyle="#00ff95";
+      ctx.fillRect(this.x,this.y,40,40);
+    }
+  }
+
+};
 </script>
 
 <script>
