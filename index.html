@@ -4,244 +4,123 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Neon Games Hub</title>
-
 <style>
 :root{
   --bg:#050608;
+  --panel:#0b141a;
   --neon:#00ff95;
   --danger:#ff0066;
   --soft:rgba(0,255,150,.25);
   --text:#eafff6;
 }
-
-*{box-sizing:border-box}
-
-body{
-  margin:0;
-  background:radial-gradient(circle at top,#0d151b,#050608 70%);
-  font-family:system-ui,Segoe UI,Arial;
-  color:var(--text);
-  overflow:hidden;
-}
-
-/* HUB */
-#topbar{
-  display:flex;
-  align-items:center;
-  gap:14px;
-  padding:16px;
-  border-bottom:1px solid var(--soft);
-}
-#logo{
-  width:40px;height:40px;
-  border-radius:10px;
-  background:linear-gradient(135deg,var(--neon),#00c27a);
-  display:grid;place-items:center;
-  font-weight:900;color:#022;
-}
-
-#content{
-  height:calc(100vh - 72px);
-  overflow-y:auto;
-  padding:16px;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:16px;
-}
-
-.card{
-  background:#0b141a;
-  border:1px solid var(--soft);
-  border-radius:16px;
-  padding:14px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-.card h3{margin:0;color:var(--neon)}
-.play{
-  margin-top:auto;
-  padding:12px;
-  border-radius:14px;
-  border:1px solid var(--soft);
-  background:#050608;
-  color:var(--text);
-  cursor:pointer;
-}
-
-/* GAME */
-#overlay{
-  position:fixed;
-  inset:0;
-  background:#050608;
-  display:none;
-  z-index:1000;
-}
-canvas{display:block; width:100%; height:100%}
-
-/* MOBILE CONTROLS */
-#controls{
-  position:fixed;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  display:none;
-  gap:10px;
-}
-.ctrl{
-  width:60px;height:60px;
-  border-radius:50%;
-  background:rgba(0,255,150,.15);
-  border:1px solid var(--soft);
-  display:grid;place-items:center;
-  font-size:22px;
-  user-select:none;
-  touch-action:none;
-}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,Segoe UI,Arial;color:var(--text);overflow:hidden;background:radial-gradient(circle at top,#0d151b,#050608 70%);}
+#topbar{display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--soft);}
+#logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--neon),#00c27a);display:grid;place-items:center;font-weight:900;color:#022;box-shadow:0 0 25px rgba(0,255,150,.8);}
+#content{height:calc(100vh - 76px);overflow-y:auto;padding:26px;}
+.hero{text-align:center;margin-bottom:36px;}
+.hero h1{margin:0;font-size:3rem;color:var(--neon);text-shadow:0 0 25px rgba(0,255,150,.8);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;}
+.card{background:var(--panel);border:1px solid var(--soft);border-radius:20px;padding:18px;transition:.3s;}
+.card:hover{transform:translateY(-6px);box-shadow:0 0 30px rgba(0,255,150,.5);}
+.play{margin-top:14px;width:100%;padding:14px;border-radius:14px;border:none;background:var(--neon);font-weight:900;cursor:pointer;}
+#overlay{position:fixed;inset:0;background:#050608;display:none;z-index:1000;}
+canvas{width:100%;height:100%;display:block;}
+#controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:none;gap:10px;}
+.ctrl{width:60px;height:60px;border-radius:50%;background:rgba(0,255,150,.15);border:1px solid var(--soft);display:grid;place-items:center;font-size:22px;user-select:none;touch-action:none;}
 </style>
 </head>
-
 <body>
 
 <div id="topbar">
-  <div id="logo" aria-hidden="true">N</div>
+  <div id="logo">N</div>
   <strong>Neon Games Hub</strong>
 </div>
 
 <div id="content">
+  <div class="hero"><h1>NEON ARCADE</h1><p>Offline. Installable. Neon style.</p></div>
   <div class="grid" id="grid"></div>
 </div>
 
-<div id="overlay" role="dialog" aria-hidden="true" aria-label="Game overlay">
-  <canvas id="game" aria-hidden="false"></canvas>
-  <div id="controls" aria-hidden="false">
-    <div class="ctrl" data-k="ArrowLeft" aria-label="Left">◀</div>
-    <div class="ctrl" data-k="ArrowRight" aria-label="Right">▶</div>
-    <div class="ctrl" data-k="ArrowUp" aria-label="Jump">▲</div>
+<div id="overlay">
+  <canvas id="game"></canvas>
+  <div id="controls">
+    <div class="ctrl" data-k="ArrowLeft">◀</div>
+    <div class="ctrl" data-k="ArrowRight">▶</div>
+    <div class="ctrl" data-k="ArrowUp">▲</div>
+    <div class="ctrl" data-k="ArrowDown">▼</div>
   </div>
 </div>
 
 <script>
-/* COLORS (moved up so games can use them immediately) */
-const varNeon = "#00ff95";
-const varDanger = "#ff0066";
-const varBg = "#050608";
-
-/* HUB DATA */
-const games = [{ id: "platformer", name: "Platformer" }];
-
+// ====== Setup ======
 const grid = document.getElementById("grid");
 const overlay = document.getElementById("overlay");
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const controls = document.getElementById("controls");
+let raf, game;
 const keys = {};
+const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-// add entries to UI
-games.forEach(g => {
-  const c = document.createElement("div");
-  c.className = "card";
-  c.innerHTML = `<h3>${g.name}</h3><button class="play">Play</button>`;
-  c.querySelector(".play").onclick = () => startGame(g.id);
-  grid.appendChild(c);
+// ====== Input ======
+window.addEventListener("keydown", e => { if(e.key.startsWith("Arrow")) e.preventDefault(); keys[e.key]=true; if(e.key==="Escape") exitGame(); });
+window.addEventListener("keyup", e => keys[e.key]=false);
+document.querySelectorAll(".ctrl").forEach(b=>{
+  b.addEventListener("touchstart", ev=>{ ev.preventDefault(); keys[b.dataset.k]=true; }, {passive:false});
+  b.addEventListener("touchend", ev=>{ ev.preventDefault(); keys[b.dataset.k]=false; }, {passive:false});
+  b.addEventListener("touchcancel", ev=>{ ev.preventDefault(); keys[b.dataset.k]=false; }, {passive:false});
 });
 
-/* HiDPI resize */
-function resize() {
+// ====== Resize ======
+function resize(){
   const dpr = window.devicePixelRatio || 1;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  canvas.style.width = w + "px";
-  canvas.style.height = h + "px";
-  canvas.width = Math.max(1, Math.floor(w * dpr));
-  canvas.height = Math.max(1, Math.floor(h * dpr));
-  // set transform so drawing is in CSS pixels but backed by device pixels
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvas.width = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 window.addEventListener("resize", resize);
 resize();
 
-/* INPUT */
-window.addEventListener("keydown", e => {
-  // prevent arrows from scrolling
-  if (e.key.startsWith("Arrow")) e.preventDefault();
-  keys[e.key] = true;
-  if (e.key === "Escape") exitGame();
-});
-window.addEventListener("keyup", e => {
-  keys[e.key] = false;
-});
-
-// touch controls - preventDefault to avoid synthetic mouse events and scrolling
-document.querySelectorAll(".ctrl").forEach(b => {
-  b.addEventListener("touchstart", ev => {
-    ev.preventDefault();
-    keys[b.dataset.k] = true;
-  }, { passive: false });
-  b.addEventListener("touchend", ev => {
-    ev.preventDefault();
-    keys[b.dataset.k] = false;
-  }, { passive: false });
-  b.addEventListener("touchcancel", ev => {
-    ev.preventDefault();
-    keys[b.dataset.k] = false;
-  }, { passive: false });
-});
-
-/* show controls only on touch devices */
-const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-/* ENGINE */
-let game = null;
-let rafId = null;
-
-function startGame(id) {
+// ====== Engine ======
+function startGame(id){
   resize();
-  overlay.style.display = "block";
-  overlay.setAttribute("aria-hidden", "false");
-  if (isTouch) controls.style.display = "flex";
+  overlay.style.display="block";
+  if(isTouch) controls.style.display="flex";
   game = Games[id];
+  if(!game){ console.error("Game not found:", id); overlay.style.display="none"; return; }
   game.init();
-  if (rafId) cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(loop);
+  if(raf) cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(loop);
 }
-function exitGame() {
-  overlay.style.display = "none";
-  overlay.setAttribute("aria-hidden", "true");
-  controls.style.display = "none";
-  game = null;
-  if (rafId) {
-    cancelAnimationFrame(rafId);
-    rafId = null;
-  }
-}
-function loop() {
-  if (!game) return;
-  // clear in CSS pixels (context transform handles DPR)
-  ctx.fillStyle = varBg;
-  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+function exitGame(){overlay.style.display="none"; game=null; if(raf){cancelAnimationFrame(raf); raf=null;} }
+function loop(){ if(!game) return; ctx.fillStyle="#050608"; ctx.fillRect(0,0,window.innerWidth,window.innerHeight); game.update(); game.draw(); raf=requestAnimationFrame(loop); }
 
-  game.update();
-  game.draw();
-  rafId = requestAnimationFrame(loop);
-}
+// ====== Hub Games ======
+const Games = {};
 
-// ==================== GAMES ====================
+// Game list
+const games = [
+  {id:"platformer", name:"Platformer"},
+  {id:"snake", name:"Snake"},
+  {id:"tetris", name:"Tetris"}
+];
 
-// ---------- PLATFORMER ----------
+games.forEach(g=>{
+  const c = document.createElement("div");
+  c.className = "card";
+  c.innerHTML = `<h3>${g.name}</h3><button class="play">PLAY</button>`;
+  c.querySelector(".play").onclick = ()=>startGame(g.id);
+  grid.appendChild(c);
+});
+
+// ================= PLATFORMER =================
 Games.platformer = {
   init() {
-    this.T = 32;
-    this.camX = 0;
-    this.spawn = { x: 64, y: 64 };
-    this.p = { x:this.spawn.x, y:this.spawn.y, w:28, h:28, vx:0, vy:0, onGround:false };
-    this.gravity = 0.9;
-    this.jumpPower = -15;
-    this.speed = 4;
-    this.map = [
+    this.T = 32; this.camX=0; this.spawn={x:64,y:64};
+    this.p={x:this.spawn.x, y:this.spawn.y, w:28,h:28, vx:0, vy:0, onGround:false};
+    this.gravity=0.9; this.jumpPower=-15; this.speed=4;
+    this.map=[
       "0000000000000000000000000000000000",
       "0000000000000000000000000000000000",
       "0000000000011110000000000000000000",
@@ -253,149 +132,50 @@ Games.platformer = {
       "1111111111111111111111111111111111",
       "1111111111111111111111111111111111"
     ];
-    this.spikes = [{ x:12, y:10 }, {x:13,y:10}, {x:22,y:10}];
-    this.checkpoint = { x:this.spawn.x, y:this.spawn.y };
-    this.enemies = [{ x:420, y:288, w:28, h:28, dir:1 }, { x:760, y:288, w:28, h:28, dir:-1 }];
-    this.moving = [{ x:520, y:240, w:64, h:12, base:520, range:80, dir:1 }];
+    this.spikes=[{x:12,y:10},{x:13,y:10},{x:22,y:10}];
+    this.checkpoint={x:this.spawn.x,y:this.spawn.y};
+    this.enemies=[{x:420,y:288,w:28,h:28,dir:1},{x:760,y:288,w:28,h:28,dir:-1}];
+    this.moving=[{x:520,y:240,w:64,h:12,base:520,range:80,dir:1}];
   },
   update() {
-    const p = this.p;
-    if(keys.ArrowLeft)p.vx=-this.speed;
-    else if(keys.ArrowRight)p.vx=this.speed;
-    else p.vx=0;
-    if((keys.ArrowUp || keys.Space) && p.onGround){p.vy=this.jumpPower;p.onGround=false;}
-    p.vy += this.gravity;
-    p.x += p.vx; this.resolve("x");
-    p.y += p.vy; this.resolve("y");
-    this.camX = p.x - window.innerWidth/2;
-    if(this.camX<0)this.camX=0;
+    const p=this.p;
+    if(keys.ArrowLeft)p.vx=-this.speed; else if(keys.ArrowRight)p.vx=this.speed; else p.vx=0;
+    if((keys.ArrowUp || keys.Space)&&p.onGround){p.vy=this.jumpPower; p.onGround=false;}
+    p.vy+=this.gravity; p.x+=p.vx; this.resolve("x"); p.y+=p.vy; this.resolve("y");
+    this.camX = Math.max(0, p.x - window.innerWidth/2);
 
-    // moving platforms
     this.moving.forEach(m=>{
-      m.x += m.dir*1.5;
-      if(Math.abs(m.x - m.base) > m.range) m.dir*=-1;
-      if(p.x+p.w > m.x && p.x<m.x+m.w && p.y+p.h<=m.y+6 && p.y+p.h>=m.y-6 && p.vy>=0){
-        p.y = m.y - p.h; p.vy=0; p.onGround=true; p.x+=m.dir*1.5;
+      m.x+=m.dir*1.5;
+      if(Math.abs(m.x - m.base)>m.range)m.dir*=-1;
+      if(p.x+p.w>m.x && p.x<m.x+m.w && p.y+p.h<=m.y+6 && p.y+p.h>=m.y-6 && p.vy>=0){
+        p.y=m.y-p.h; p.vy=0; p.onGround=true; p.x+=m.dir*1.5;
       }
     });
-
-    // enemies
-    this.enemies.forEach(e=>{
-      e.x += e.dir*1.5;
-      if(e.x<300||e.x>900)e.dir*=-1;
-      if(p.x<e.x+e.w && p.x+p.w>e.x && p.y<e.y+e.h && p.y+p.h>e.y) this.respawn();
-    });
-
-    // spikes
-    this.spikes.forEach(s=>{
-      const sx = s.x*this.T, sy=s.y*this.T;
-      if(p.x<sx+this.T && p.x+p.w>sx && p.y<sy+this.T && p.y+p.h>sy) this.respawn();
-    });
-
-    if(p.y>window.innerHeight+200) this.respawn();
+    this.enemies.forEach(e=>{e.x+=e.dir*1.5;if(e.x<300||e.x>900)e.dir*=-1;if(p.x<e.x+e.w&&p.x+p.w>e.x&&p.y<e.y+e.h&&p.y+p.h>e.y)this.respawn();});
+    this.spikes.forEach(s=>{const sx=s.x*this.T,sy=s.y*this.T;if(p.x<sx+this.T&&p.x+p.w>sx&&p.y<sy+this.T&&p.y+p.h>sy)this.respawn();});
+    if(p.y>window.innerHeight+200)this.respawn();
   },
-  respawn(){this.p.x=this.checkpoint.x;this.p.y=this.checkpoint.y; this.p.vx=this.p.vy=0;},
-  resolve(axis){
-    const p=this.p, T=this.T; p.onGround=false;
-    const l=Math.floor(p.x/T), r=Math.floor((p.x+p.w)/T), t=Math.floor(p.y/T), b=Math.floor((p.y+p.h)/T);
-    for(let y=t;y<=b;y++){
-      const row=this.map[y]; for(let x=l;x<=r;x++){
-        if(!row||row[x]!=="1") continue;
-        const tx=x*T, ty=y*T;
-        if(axis==="x"){if(p.vx>0)p.x=tx-p.w; else if(p.vx<0)p.x=tx+T; p.vx=0;}
-        if(axis==="y"){if(p.vy>0){p.y=ty-p.h; p.vy=0; p.onGround=true; this.checkpoint={x:p.x,y:p.y};}
-        else if(p.vy<0){p.y=ty+T; p.vy=0;}}
-      }
-    }
-  },
-  draw(){
-    ctx.fillStyle="#050608"; ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
-    // tiles
-    for(let y=0;y<this.map.length;y++){
-      const row=this.map[y]||"";
-      for(let x=0;x<row.length;x++){
-        if(row[x]==="1"){ctx.fillStyle="#2a2a2a";ctx.fillRect(x*this.T - this.camX,y*this.T,this.T,this.T);}
-      }
-    }
-    // spikes
-    ctx.fillStyle="#ff0066";
-    this.spikes.forEach(s=>{
-      const x=s.x*this.T-this.camX, y=s.y*this.T;
-      ctx.beginPath(); ctx.moveTo(x,y+this.T); ctx.lineTo(x+this.T/2,y); ctx.lineTo(x+this.T,y+this.T); ctx.closePath(); ctx.fill();
-    });
-    // moving platforms
-    ctx.fillStyle="#888"; this.moving.forEach(m=>ctx.fillRect(m.x-this.camX,m.y,m.w,m.h));
-    // enemies
-    ctx.fillStyle="#ffb000"; this.enemies.forEach(e=>ctx.fillRect(e.x-this.camX,e.y,e.w,e.h));
-    // player
-    ctx.save(); ctx.shadowBlur=20; ctx.shadowColor="#00ff95"; ctx.fillStyle="#00ff95"; ctx.fillRect(this.p.x-this.camX,this.p.y,this.p.w,this.p.h); ctx.restore();
-  }
+  respawn(){this.p.x=this.checkpoint.x; this.p.y=this.checkpoint.y; this.p.vx=this.p.vy=0;},
+  resolve(axis){const p=this.p, T=this.T; p.onGround=false; const l=Math.floor(p.x/T), r=Math.floor((p.x+p.w)/T), t=Math.floor(p.y/T), b=Math.floor((p.y+p.h)/T);for(let y=t;y<=b;y++){const row=this.map[y];for(let x=l;x<=r;x++){if(!row||row[x]!=="1")continue;const tx=x*T,ty=y*T;if(axis==="x"){if(p.vx>0)p.x=tx-p.w; else if(p.vx<0)p.x=tx+T; p.vx=0;}if(axis==="y"){if(p.vy>0){p.y=ty-p.h;p.vy=0;p.onGround=true; this.checkpoint={x:p.x,y:p.y};} else if(p.vy<0){p.y=ty+T;p.vy=0;}}}}}
+  draw(){ctx.fillStyle="#050608";ctx.fillRect(0,0,window.innerWidth,window.innerHeight);for(let y=0;y<this.map.length;y++){const row=this.map[y]||"";for(let x=0;x<row.length;x++)if(row[x]==="1"){ctx.fillStyle="#2a2a2a";ctx.fillRect(x*this.T-this.camX,y*this.T,this.T,this.T);}}ctx.fillStyle="#ff0066";this.spikes.forEach(s=>{const x=s.x*this.T-this.camX,y=s.y*this.T;ctx.beginPath();ctx.moveTo(x,y+this.T);ctx.lineTo(x+this.T/2,y);ctx.lineTo(x+this.T,y+this.T);ctx.closePath();ctx.fill();});ctx.fillStyle="#888";this.moving.forEach(m=>ctx.fillRect(m.x-this.camX,m.y,m.w,m.h));ctx.fillStyle="#ffb000";this.enemies.forEach(e=>ctx.fillRect(e.x-this.camX,e.y,e.w,e.h));ctx.save();ctx.shadowBlur=20;ctx.shadowColor="#00ff95";ctx.fillStyle="#00ff95";ctx.fillRect(this.p.x-this.camX,this.p.y,this.p.w,this.p.h);ctx.restore();}
 };
 
-// ---------- SNAKE ----------
+// ================= SNAKE =================
 Games.snake = {
-  init() {
-    this.cell = 20;
-    this.width = Math.floor(window.innerWidth/this.cell);
-    this.height = Math.floor(window.innerHeight/this.cell);
-    this.snake = [{x:Math.floor(this.width/2),y:Math.floor(this.height/2)}];
-    this.dir = {x:0,y:0};
-    this.food = this.randomFood();
-    this.speed = 5;
-    this.frame=0;
-  },
-  randomFood() {
-    return {x:Math.floor(Math.random()*this.width), y:Math.floor(Math.random()*this.height)};
-  },
-  update() {
-    this.frame++;
-    if(this.frame % (60/this.speed)!==0) return;
-    if(keys.ArrowUp && this.dir.y===0) this.dir={x:0,y:-1};
-    if(keys.ArrowDown && this.dir.y===0) this.dir={x:0,y:1};
-    if(keys.ArrowLeft && this.dir.x===0) this.dir={x:-1,y:0};
-    if(keys.ArrowRight && this.dir.x===0) this.dir={x:1,y:0};
-    const head = {x:this.snake[0].x+this.dir.x, y:this.snake[0].y+this.dir.y};
-    if(head.x<0 || head.y<0 || head.x>=this.width || head.y>=this.height || this.snake.some(s=>s.x===head.x && s.y===head.y)) {
-      this.init(); return;
-    }
-    this.snake.unshift(head);
-    if(head.x===this.food.x && head.y===this.food.y) this.food=this.randomFood();
-    else this.snake.pop();
-  },
-  draw() {
-    ctx.fillStyle="#050608"; ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
-    ctx.fillStyle="#00ff95"; this.snake.forEach(s=>ctx.fillRect(s.x*this.cell,s.y*this.cell,this.cell-2,this.cell-2));
-    ctx.fillStyle="#ff0066"; ctx.fillRect(this.food.x*this.cell,this.food.y*this.cell,this.cell-2,this.cell-2);
-  }
+  init() { this.cell=20; this.width=Math.floor(window.innerWidth/this.cell); this.height=Math.floor(window.innerHeight/this.cell); this.snake=[{x:Math.floor(this.width/2),y:Math.floor(this.height/2)}]; this.dir={x:0,y:0}; this.food=this.randomFood(); this.speed=5; this.frame=0;},
+  randomFood(){return {x:Math.floor(Math.random()*this.width),y:Math.floor(Math.random()*this.height)};},
+  update(){this.frame++; if(this.frame%(60/this.speed)!==0)return; if(keys.ArrowUp&&this.dir.y===0)this.dir={x:0,y:-1}; if(keys.ArrowDown&&this.dir.y===0)this.dir={x:0,y:1}; if(keys.ArrowLeft&&this.dir.x===0)this.dir={x:-1,y:0}; if(keys.ArrowRight&&this.dir.x===0)this.dir={x:1,y:0}; const head={x:this.snake[0].x+this.dir.x,y:this.snake[0].y+this.dir.y}; if(head.x<0||head.y<0||head.x>=this.width||head.y>=this.height||this.snake.some(s=>s.x===head.x&&s.y===head.y)){this.init();return;} this.snake.unshift(head); if(head.x===this.food.x&&head.y===this.food.y)this.food=this.randomFood(); else this.snake.pop();},
+  draw(){ctx.fillStyle="#050608";ctx.fillRect(0,0,window.innerWidth,window.innerHeight); ctx.fillStyle="#00ff95"; this.snake.forEach(s=>ctx.fillRect(s.x*this.cell,s.y*this.cell,this.cell-2,this.cell-2)); ctx.fillStyle="#ff0066";ctx.fillRect(this.food.x*this.cell,this.food.y*this.cell,this.cell-2,this.cell-2);}
 };
 
-// ---------- TETRIS ----------
+// ================= TETRIS =================
 Games.tetris = {
-  init() {
-    this.cell=30; this.cols=10; this.rows=20;
-    this.board=Array.from({length:this.rows},()=>Array(this.cols).fill(0));
-    this.pieces=[ [[1,1,1],[0,1,0]], [[1,1],[1,1]], [[0,1,1],[1,1,0]], [[1,1,0],[0,1,1]], [[1,1,1,1]] ];
-    this.current=this.newPiece();
-    this.pos={x:3,y:0};
-    this.dropFrame=0;
-  },
-  newPiece() { return this.pieces[Math.floor(Math.random()*this.pieces.length)]; },
-  merge() { const p=this.pos,c=this.current; for(let y=0;y<c.length;y++)for(let x=0;x<c[y].length;x++)if(c[y][x]) this.board[p.y+y][p.x+x]=1; },
-  collide() { const p=this.pos,c=this.current; for(let y=0;y<c.length;y++)for(let x=0;x<c[y].length;x++) if(c[y][x] && (this.board[p.y+y]&&this.board[p.y+y][p.x+x]!==0)) return true; return false; },
-  update() {
-    this.dropFrame++;
-    if(this.dropFrame%30===0){this.pos.y++; if(this.collide()){this.pos.y--; this.merge(); this.current=this.newPiece(); this.pos={x:3,y:0}; if(this.collide()) this.init();} }
-    if(keys.ArrowLeft){this.pos.x--; if(this.collide()) this.pos.x++; keys.ArrowLeft=false;}
-    if(keys.ArrowRight){this.pos.x++; if(this.collide()) this.pos.x--; keys.ArrowRight=false;}
-    if(keys.ArrowDown){this.pos.y++; if(this.collide()){this.pos.y--; this.merge(); this.current=this.newPiece(); this.pos={x:3,y:0}; if(this.collide()) this.init();} keys.ArrowDown=false;}
-  },
-  draw() {
-    ctx.fillStyle="#050608"; ctx.fillRect(0,0,window.innerWidth,window.innerHeight);
-    // board
-    for(let y=0;y<this.rows;y++)for(let x=0;x<this.cols;x++)if(this.board[y][x]){ctx.fillStyle="#00ff95";ctx.fillRect(x*this.cell,y*this.cell,this.cell-2,this.cell-2);}
-    // current piece
-    const c=this.current; for(let y=0;y<c.length;y++)for(let x=0;x<c[y].length;x++)if(c[y][x]){ctx.fillStyle="#ff0066";ctx.fillRect((this.pos.x+x)*this.cell,(this.pos.y+y)*this.cell,this.cell-2,this.cell-2);}
-  }
+  init(){this.cell=30; this.cols=10; this.rows=20; this.board=Array.from({length:this.rows},()=>Array(this.cols).fill(0)); this.pieces=[ [[1,1,1],[0,1,0]], [[1,1],[1,1]], [[0,1,1],[1,1,0]], [[1,1,0],[0,1,1]], [[1,1,1,1]] ]; this.current=this.newPiece(); this.pos={x:3,y:0}; this.dropFrame=0;},
+  newPiece(){return this.pieces[Math.floor(Math.random()*this.pieces.length)];},
+  merge(){const p=this.pos,c=this.current;for(let y=0;y<c.length;y++)for(let x=0;x<c[y].length;x++)if(c[y][x])this.board[p.y+y][p.x+x]=1;},
+  collide(){const p=this.pos,c=this.current;for(let y=0;y<c.length;y++)for(let x=0;x<c[y].length;x++)if(c[y][x] && (this.board[p.y+y]&&this.board[p.y+y][p.x+x]!==0)) return true; return false;},
+  update(){this.dropFrame++; if(this.dropFrame%30===0){this.pos.y++; if(this.collide()){this.pos.y--; this.merge(); this.current=this.newPiece(); this.pos={x:3,y:0}; if(this.collide()) this.init();}} if(keys.ArrowLeft){this.pos.x--; if(this.collide()) this.pos.x++; keys.ArrowLeft=false;} if(keys.ArrowRight){this.pos.x++; if(this.collide()) this.pos.x--; keys.ArrowRight=false;} if(keys.ArrowDown){this.pos.y++; if(this.collide()){this.pos.y--; this.merge(); this.current=this.newPiece(); this.pos={x:3,y:0}; if(this.collide()) this.init();} keys.ArrowDown=false;}},
+  draw(){ctx.fillStyle="#050608"; ctx.fillRect(0,0,window.innerWidth,window.innerHeight); for(let y=0;y<this.rows;y++)for(let x=0;x<this.cols;x++)if(this.board[y][x]){ctx.fillStyle="#00ff95"; ctx.fillRect(x*this.cell,y*this.cell,this.cell-2,this.cell-2);} const c=this.current; for(let y=0;y<c.length;y++)for(let x=0;x<c[y].length;x++)if(c[y][x]){ctx.fillStyle="#ff0066"; ctx.fillRect((this.pos.x+x)*this.cell,(this.pos.y+y)*this.cell,this.cell-2,this.cell-2);}}
 };
 </script>
 
