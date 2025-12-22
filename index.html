@@ -246,199 +246,169 @@ const Games={
 
 platformer:{
   init(){
-    // world
-    this.scroll = 0;
-    this.speed = 3;
-    this.gravity = 0.7;
-    this.jumpPower = -14;
-    this.score = 0;
+    // tile size
+    this.T = 32;
 
     // player
-    this.player = {
-      x: 120,
-      y: 200,
+    this.p = {
+      x: 64,
+      y: 64,
       w: 28,
       h: 28,
+      vx: 0,
       vy: 0,
-      onGround: false,
-      jumpBuffer: 0
+      onGround: false
     };
 
-    // platforms
-    this.platforms = [];
-    let x = 0;
-    for(let i=0;i<12;i++){
-      this.platforms.push({
-        x: x,
-        y: 320 + Math.random()*40,
-        w: 120 + Math.random()*80
-      });
-      x += 160 + Math.random()*80;
-    }
+    // physics
+    this.gravity = 0.9;
+    this.jumpPower = -15;
+    this.moveSpeed = 4;
 
-    // spikes
-    this.spikes = [];
+    // level map (0 = empty, 1 = block, 2 = spikes)
+    this.map = [
+      "00000000000000000000",
+      "00000000000000000000",
+      "00000000000000000000",
+      "00000111100000000000",
+      "00000000000000011100",
+      "00011100000000000000",
+      "00000000000011100000",
+      "00000000000000000000",
+      "11111111111111111111",
+      "11111111111111111111"
+    ];
+
+    this.rows = this.map.length;
+    this.cols = this.map[0].length;
   },
 
   update(){
-    const p = this.player;
+    const p = this.p;
 
-    // increase difficulty
-    this.speed += 0.0008;
-    this.scroll += this.speed;
-    this.score += this.speed * 0.1;
+    // horizontal input
+    if(keys.ArrowLeft) p.vx = -this.moveSpeed;
+    else if(keys.ArrowRight) p.vx = this.moveSpeed;
+    else p.vx = 0;
 
-    // input
-    if(keys.ArrowUp) p.jumpBuffer = 6;
+    // jump
+    if(keys.ArrowUp && p.onGround){
+      p.vy = this.jumpPower;
+      p.onGround = false;
+    }
 
-    // physics
+    // gravity
     p.vy += this.gravity;
-    p.y += p.vy;
 
-    // collision reset
+    // apply movement
+    p.x += p.vx;
+    this.resolveCollisions("x");
+
+    p.y += p.vy;
+    this.resolveCollisions("y");
+  },
+
+  resolveCollisions(axis){
+    const p = this.p;
+    const T = this.T;
+
     p.onGround = false;
 
-    // platform collision
-    this.platforms.forEach(pl=>{
-      const px = pl.x - this.scroll;
-      if(
-        p.x < px + pl.w &&
-        p.x + p.w > px &&
-        p.y + p.h > pl.y &&
-        p.y + p.h < pl.y + 20 &&
-        p.vy >= 0
-      ){
-        p.y = pl.y - p.h;
-        p.vy = 0;
-        p.onGround = true;
+    // tile range to check
+    const left   = Math.floor(p.x / T);
+    const right  = Math.floor((p.x + p.w) / T);
+    const top    = Math.floor(p.y / T);
+    const bottom = Math.floor((p.y + p.h) / T);
+
+    for(let y = top; y <= bottom; y++){
+      for(let x = left; x <= right; x++){
+        const tile = this.map[y]?.[x];
+        if(!tile) continue;
+
+        const tx = x * T;
+        const ty = y * T;
+
+        // solid block
+        if(tile === "1"){
+          if(
+            p.x < tx + T &&
+            p.x + p.w > tx &&
+            p.y < ty + T &&
+            p.y + p.h > ty
+          ){
+            if(axis === "x"){
+              if(p.vx > 0) p.x = tx - p.w;
+              if(p.vx < 0) p.x = tx + T;
+              p.vx = 0;
+            }
+
+            if(axis === "y"){
+              if(p.vy > 0){
+                p.y = ty - p.h;
+                p.vy = 0;
+                p.onGround = true;
+              }
+              if(p.vy < 0){
+                p.y = ty + T;
+                p.vy = 0;
+              }
+            }
+          }
+        }
+
+        // spikes
+        if(tile === "2"){
+          if(
+            p.x < tx + T &&
+            p.x + p.w > tx &&
+            p.y < ty + T &&
+            p.y + p.h > ty
+          ){
+            // restart level
+            this.init();
+          }
+        }
       }
-    });
-
-    // jump buffer
-    if(p.jumpBuffer > 0){
-      if(p.onGround){
-        p.vy = this.jumpPower;
-        p.onGround = false;
-        p.jumpBuffer = 0;
-      }
-      p.jumpBuffer--;
-    }
-
-    // generate new platforms
-    const last = this.platforms[this.platforms.length-1];
-    if(last.x - this.scroll < canvas.width){
-      this.platforms.push({
-        x: last.x + 160 + Math.random()*120,
-        y: 260 + Math.random()*80,
-        w: 100 + Math.random()*100
-      });
-
-      // spikes
-      if(Math.random() < 0.4){
-        this.spikes.push({
-          x: last.x + 80,
-          y: 340,
-          w: 40,
-          h: 20
-        });
-      }
-    }
-
-    // remove old platforms
-    if(this.platforms[0].x - this.scroll + this.platforms[0].w < 0){
-      this.platforms.shift();
-    }
-
-    // spike collision
-    this.spikes.forEach(s=>{
-      const sx = s.x - this.scroll;
-      if(
-        p.x < sx + s.w &&
-        p.x + p.w > sx &&
-        p.y < s.y + s.h &&
-        p.y + p.h > s.y
-      ){
-        this.init();
-      }
-    });
-
-    // remove old spikes
-    if(this.spikes.length && this.spikes[0].x - this.scroll < -50){
-      this.spikes.shift();
-    }
-
-    // fall = death
-    if(p.y > canvas.height){
-      this.init();
     }
   },
 
   draw(){
-    // background gradient
-    const g = ctx.createLinearGradient(0,0,0,canvas.height);
-    g.addColorStop(0,"#0d151b");
-    g.addColorStop(1,"#050608");
-    ctx.fillStyle = g;
+    // background
+    ctx.fillStyle = "#050608";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    // platforms
-    ctx.fillStyle = "#2a2a2a";
-    this.platforms.forEach(pl=>{
-      ctx.fillRect(
-        pl.x - this.scroll,
-        pl.y,
-        pl.w,
-        16
-      );
-    });
+    // draw tiles
+    for(let y=0;y<this.rows;y++){
+      for(let x=0;x<this.cols;x++){
+        const tile = this.map[y][x];
+        const tx = x * this.T;
+        const ty = y * this.T;
 
-    // spikes
-    ctx.fillStyle = "#ff0066";
-    this.spikes.forEach(s=>{
-      const x = s.x - this.scroll;
-      ctx.beginPath();
-      ctx.moveTo(x, s.y + s.h);
-      ctx.lineTo(x + s.w/2, s.y);
-      ctx.lineTo(x + s.w, s.y + s.h);
-      ctx.fill();
-    });
+        // block
+        if(tile === "1"){
+          ctx.fillStyle = "#2a2a2a";
+          ctx.fillRect(tx,ty,this.T,this.T);
+        }
 
-    // player glow
+        // spikes
+        if(tile === "2"){
+          ctx.fillStyle = "#ff0066";
+          ctx.beginPath();
+          ctx.moveTo(tx, ty + this.T);
+          ctx.lineTo(tx + this.T/2, ty);
+          ctx.lineTo(tx + this.T, ty + this.T);
+          ctx.fill();
+        }
+      }
+    }
+
+    // player (neon glow)
     ctx.shadowBlur = 20;
     ctx.shadowColor = "#00ff95";
     ctx.fillStyle = "#00ff95";
-    ctx.fillRect(
-      this.player.x,
-      this.player.y,
-      this.player.w,
-      this.player.h
-    );
+    ctx.fillRect(this.p.x,this.p.y,this.p.w,this.p.h);
     ctx.shadowBlur = 0;
-
-    // HUD
-    ctx.fillStyle = "#00ff95";
-    ctx.font = "18px system-ui";
-    ctx.fillText(
-      "DISTANCE: " + Math.floor(this.score),
-      20,
-      30
-    );
   }
-},
-
-  tower:{
-    init(){
-      this.e=0;
-    },
-    update(){ this.e+=1; if(this.e>canvas.width) exitGame(); },
-    draw(){
-      ctx.fillStyle=varDanger;
-      ctx.fillRect(this.e,canvas.height/2,20,20);
-      ctx.fillStyle=varNeon;
-      ctx.fillRect(100,canvas.height/2,30,30);
-    }
-  }
-
 };
 
 const varNeon="#00ff95";
