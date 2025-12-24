@@ -3,7 +3,7 @@ Games.pong={
   update(){
     if(keys.ArrowUp)this.p-=6;
     if(keys.ArrowDown)this.p+=6;
-    this.b.x+=this.b.vx; this.b.y+=this.b.vy;
+    this.b.x+=this.b.vx;this.b.y+=this.b.vy;
     if(this.b.y<0||this.b.y>innerHeight)this.b.vy*=-1;
     if(this.b.x<30&&Math.abs(this.b.y-this.p)<60)this.b.vx*=-1;
   },
