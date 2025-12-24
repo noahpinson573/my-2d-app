@@ -1,7 +1,7 @@
 Games.snake={
   init(){this.s=[{x:10,y:10}];this.d={x:0,y:0};this.f={x:5,y:5};this.t=0;},
   update(){
-    if(++this.t<6)return; this.t=0;
+    if(++this.t<6)return;this.t=0;
     if(keys.ArrowLeft)this.d={x:-1,y:0};
     if(keys.ArrowRight)this.d={x:1,y:0};
     if(keys.ArrowUp)this.d={x:0,y:-1};
