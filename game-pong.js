@@ -1,18 +1,17 @@
 Games.pong={
-  init(){this.p1=innerHeight/2;this.b={x:innerWidth/2,y:innerHeight/2,vx:4,vy:4};},
+  init(){this.p=innerHeight/2;this.b={x:innerWidth/2,y:innerHeight/2,vx:4,vy:4};},
   update(){
-    if(keys.ArrowUp)this.p1-=6;
-    if(keys.ArrowDown)this.p1+=6;
+    if(keys.ArrowUp)this.p-=6;
+    if(keys.ArrowDown)this.p+=6;
     this.b.x+=this.b.vx; this.b.y+=this.b.vy;
     if(this.b.y<0||this.b.y>innerHeight)this.b.vy*=-1;
-    if(this.b.x<30&&Math.abs(this.b.y-this.p1)<60)this.b.vx*=-1;
+    if(this.b.x<30&&Math.abs(this.b.y-this.p)<60)this.b.vx*=-1;
   },
   draw(){
     ctx.fillStyle="#00ff95";
-    ctx.fillRect(20,this.p1-60,10,120);
+    ctx.fillRect(20,this.p-60,10,120);
     ctx.beginPath();
     ctx.arc(this.b.x,this.b.y,10,0,Math.PI*2);
     ctx.fill();
   }
 };
-
