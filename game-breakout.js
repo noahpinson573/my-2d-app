@@ -1,1 +1,20 @@
+Games.breakout={
+  init(){this.ball={x:200,y:300,vx:4,vy:-4};this.p=200;},
+  update(){
+    if(keys.ArrowLeft)this.p-=6;
+    if(keys.ArrowRight)this.p+=6;
+    this.ball.x+=this.ball.vx;
+    this.ball.y+=this.ball.vy;
+    if(this.ball.x<0||this.ball.x>innerWidth)this.ball.vx*=-1;
+    if(this.ball.y<0)this.ball.vy*=-1;
+    if(this.ball.y>innerHeight-30&&Math.abs(this.ball.x-this.p)<60)this.ball.vy*=-1;
+  },
+  draw(){
+    ctx.fillStyle="#00ff95";
+    ctx.fillRect(this.p-60,innerHeight-20,120,10);
+    ctx.beginPath();
+    ctx.arc(this.ball.x,this.ball.y,8,0,Math.PI*2);
+    ctx.fill();
+  }
+};
 
