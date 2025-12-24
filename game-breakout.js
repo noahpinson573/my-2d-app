@@ -3,7 +3,7 @@ Games.breakout={
   update(){
     if(keys.ArrowLeft)this.p-=6;
     if(keys.ArrowRight)this.p+=6;
-    this.b.x+=this.b.vx; this.b.y+=this.b.vy;
+    this.b.x+=this.b.vx;this.b.y+=this.b.vy;
     if(this.b.x<0||this.b.x>innerWidth)this.b.vx*=-1;
     if(this.b.y<0)this.b.vy*=-1;
     if(this.b.y>innerHeight-30&&Math.abs(this.b.x-this.p)<60)this.b.vy*=-1;
@@ -16,3 +16,4 @@ Games.breakout={
     ctx.fill();
   }
 };
+
