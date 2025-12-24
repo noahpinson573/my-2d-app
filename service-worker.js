@@ -1,35 +1,15 @@
-const CACHE_NAME = "neon-games-cache-v2";
-const urlsToCache = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./service-worker.js"
+const CACHE="neon-cache-v5";
+const FILES=[
+  "./","./index.html","./style.css","./hub.js",
+  "./manifest.json","./icon-192.png","./icon-512.png",
+  "./game-snake.js","./game-tetris.js","./game-platformer.js",
+  "./game-pong.js","./game-breakout.js"
 ];
 
-// Install
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener("install",e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));
+  self.skipWaiting();
 });
-
-// Activate
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys => 
-      Promise.all(keys.map(key => {
-        if(key !== CACHE_NAME) return caches.delete(key);
-      }))
-    )
-  );
-  self.clients.claim();
-});
-
-// Fetch
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request).then(resp => resp || fetch(event.request))
-  );
+self.addEventListener("fetch",e=>{
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
 });
